@@ -1,25 +1,56 @@
 import json
 import argparse
+from util import log as ulog
 
-p=argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter)
+class CMPredict(ulog.Loggable):
+    def __init__(self):
+        self.cfg={
+          "data_dir": ".SAFE",
+          "weights": "",
+          "product": "L2A",
+          "overlapping": True,
+          "tile_size": 512,
+          "features": ["AOT", "B01", "B02", "B03", "B04", "B05", "B06", "B08", "B8A", "B09", "B11", "B12", "WVP"],
+          "batch_size": 1
+        }
+        self.data_dir=".SAFE"
+        self.weights=""
+        self.product="L2A"
+        self.overlapping=True
+        self.tile_size=512
+        self.features=["AOT", "B01", "B02", "B03", "B04", "B05", "B06", "B08", "B8A", "B09", "B11", "B12", "WVP"]
+        self.batch_size=1
 
-p.add_argument("-c", "--config", action="store", dest="path_config",help="Path to the configuration file.")
+    def config_from_dict(self, d):
+        """
+        Load configuration from a dictionary.
+        :param d: Dictionary with the configuration tree.
+        """
+        self.data_dir=d["data_dir"]
+        self.weights=d["weights"]
+        self.product=d["product"]
+        self.overlapping=d["overlapping"]
+        self.tile_size=d["tile_size"]
+        self.features=d["features"]
+        self.batch_size=d["batch_size"]
 
-args=p.parse_args()
+    def load_config(self,path):
+        with open(path, "rt") as fi:
+            self.cfg = json.load(fi)
+        self.config_from_dict(self.cfg)
 
-with open(args.path_config, "rt") as fi:
-    cfg = json.load(fi)
+def main():
+    p=argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter)
+    p.add_argument("-c", "--config", action="store", dest="path_config",help="Path to the configuration file.")
+    args=p.parse_args()
+    cmf = CMPredict()
+    cmf.load_config(args.path_config)
 
-def load_config(path):
-    with open(path, "rt") as fi:
-        d = json.load(fi)
-    data_dir=d["data_dir"]
-    weights=d["weights"]
-    product=d["product"]
-    overlapping=d["overlapping"]
-    tile_size=d["tile_size"]
-    features=d["features"]
-    batch_size=d["batch_size"]
+if __name__ == "__main__":
+    main()
+
+
+
 
 
 
