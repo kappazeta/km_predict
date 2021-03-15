@@ -1,0 +1,11 @@
+{
+  "data_dir": ".SAFE",
+  "weights": "",
+  "product": "L2A",
+  "overlapping": true,
+  "tile_size": 512,
+  "features": ["AOT", "B01", "B02", "B03", "B04", "B05", "B06", "B08", "B8A", "B09", "B11", "B12", "WVP"],
+  "batch_size": 1
+}
+
+
