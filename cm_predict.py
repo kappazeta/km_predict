@@ -10,16 +10,17 @@ args=p.parse_args()
 with open(args.path_config, "rt") as fi:
     cfg = json.load(fi)
 
-print(cfg["features"])
-
-
-def load_config(self,path):
-    """
-    Load configuration from a JSON file.
-    :param path: Path to the JSON file.
-    """
+def load_config(path):
     with open(path, "rt") as fi:
-        self.cfg = json.load(fi)
-        # TODO:: Validate config structure
-        self.config_from_dict(self.cfg)
+        d = json.load(fi)
+    data_dir=d["data_dir"]
+    weights=d["weights"]
+    product=d["product"]
+    overlapping=d["overlapping"]
+    tile_size=d["tile_size"]
+    features=d["features"]
+    batch_size=d["batch_size"]
+
+
+
 
