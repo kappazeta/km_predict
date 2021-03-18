@@ -7,6 +7,13 @@ from util.normalization import set_normalization
 from util.save_prediction_masks import save_masks_contrast
 import os
 import numpy as np
+from util.raster_mosaic import get_img_entry_id, rotateImages
+import glob
+import pathlib
+from PIL import Image
+from math import ceil, floor
+
+
 
 
 class CMPredict(ulog.Loggable):
@@ -149,6 +156,54 @@ class CMPredict(ulog.Loggable):
         Make a mosaic output from obtained predictions
         Next step: Take into account overlapping argument
         """
+        #self.product_name #tile name
+        # self.big_image_folder#big image (directory)
+
+        self.big_image_product = self.big_image_folder + "/" + self.product_name
+        if not os.path.exists(self.big_image_product):
+            os.mkdir(self.big_image_product)
+
+        # self.predict_folder #working_path
+
+        file_names =['prediction']
+
+
+        image_list = [y for x in file_names for y in pathlib.Path(self.predict_folder).glob(f'**/{x}*.png')]
+
+        image_list.sort(key=lambda var: get_img_entry_id(var))
+
+        # Raster parameters
+
+        frame_width = 10980
+        images_per_row = 22
+        padding = 0
+
+        img_width, img_height = Image.open(image_list[0]).size
+        sf = (frame_width - (images_per_row - 1) * padding) / (images_per_row * img_width)
+        scaled_img_width = ceil(img_width * sf)
+        scaled_img_height = ceil(img_height * sf)
+
+        number_of_rows = ceil(len(image_list) / images_per_row)
+        frame_height = ceil(sf * img_height * number_of_rows)
+
+        new_im = Image.new('RGB', (frame_width, frame_height))
+
+        i, j = 0, 0
+        for num, im in enumerate(image_list):
+            if num % images_per_row == 0:
+                i = 0
+            im = Image.open(im)
+            # Here I resize the opened image, so it is no bigger than 100,100
+            im.thumbnail((scaled_img_width, scaled_img_height))
+            # Iterate through a 4 by 4 grid with 100 spacing, to place my image
+            y_cord = (j // images_per_row) * scaled_img_height
+            new_im.paste(im, (i, y_cord))
+            i = (i + scaled_img_width)
+            j += 1
+
+        # Define a directory where to save a new file, resolution, etc.
+        new_im.save(self.big_image_product +"/" +'mosaic.png', "PNG", quality=10980, optimize=True, progressive=True)
+
         # Create big_image/product_name folder with os.mkdir
         # Gather sub-tiles prediction from predict/product_name
         # Create image mosaic (preferably write in a separate file under /util)
@@ -161,7 +216,7 @@ def main():
     cmf = CMPredict()
     cmf.load_config(args.path_config)
     cmf.sub_tile()
-    cmf.predict()
+    #cmf.predict()
     cmf.mosaic()
 
 
