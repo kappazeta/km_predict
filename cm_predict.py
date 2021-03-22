@@ -7,7 +7,7 @@ from util.normalization import set_normalization
 from util.save_prediction_masks import save_masks_contrast
 import os
 import numpy as np
-from util.raster_mosaic import get_img_entry_id, rotateImages
+from util.raster_mosaic import get_img_entry_id, rotateImages, rotate_img, image_grid
 import glob
 import pathlib
 from PIL import Image
@@ -139,7 +139,8 @@ class CMPredict(ulog.Loggable):
                        'batch_size': self.batch_size,
                        'features': self.features,
                        'tile_size': self.tile_size,
-                       'num_classes': len(self.classes)
+                       'num_classes': len(self.classes),
+                       'shuffle': False
                        }
         predict_generator = DataGenerator(tile_paths, **self.params)
         # sub_batch size 1 mean that we process data as whole, 2 dividing by half etc.
@@ -167,42 +168,33 @@ class CMPredict(ulog.Loggable):
 
         file_names =['prediction']
 
-
+        # Create list of prediction images
         image_list = [y for x in file_names for y in pathlib.Path(self.predict_folder).glob(f'**/{x}*.png')]
 
         image_list.sort(key=lambda var: get_img_entry_id(var))
 
-        # Raster parameters
+        # Rotate each image in the list 270˚ counter clockwise
 
-        frame_width = 10980
-        images_per_row = 22
-        padding = 0
 
-        img_width, img_height = Image.open(image_list[0]).size
-        sf = (frame_width - (images_per_row - 1) * padding) / (images_per_row * img_width)
-        scaled_img_width = ceil(img_width * sf)
-        scaled_img_height = ceil(img_height * sf)
+        #rotateImages(270, image_list)
 
-        number_of_rows = ceil(len(image_list) / images_per_row)
-        frame_height = ceil(sf * img_height * number_of_rows)
-
-        new_im = Image.new('RGB', (frame_width, frame_height))
-
-        i, j = 0, 0
-        for num, im in enumerate(image_list):
-            if num % images_per_row == 0:
-                i = 0
-            im = Image.open(im)
-            # Here I resize the opened image, so it is no bigger than 100,100
-            im.thumbnail((scaled_img_width, scaled_img_height))
-            # Iterate through a 4 by 4 grid with 100 spacing, to place my image
-            y_cord = (j // images_per_row) * scaled_img_height
-            new_im.paste(im, (i, y_cord))
-            i = (i + scaled_img_width)
-            j += 1
+        # Raster mosaic
+        """
+        A function that creates raster mosaic.
+        As parameters it takes: list of images, number of tiles per row and number of columns
+        
+        1) Takes the sub-tile width and height from the first image in the list
+        2) Sets final image size from col*width, rows*height
+        3) Creates final image from all sub-tiles, and bounding box parameters are also set 
+        """
+        new_im = image_grid(image_list, rows=22, cols=22)
 
         # Define a directory where to save a new file, resolution, etc.
         new_im.save(self.big_image_product +"/" +'mosaic.png', "PNG", quality=10980, optimize=True, progressive=True)
+
+        #Rotate final mosaic for 90˚ counter clockwise
+
+        rotate_img(self.big_image_product + "/" + 'mosaic.png', 90)
 
         # Create big_image/product_name folder with os.mkdir
         # Gather sub-tiles prediction from predict/product_name

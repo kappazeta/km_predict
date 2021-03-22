@@ -20,9 +20,9 @@ def get_img_entry_id(var):
 
 # Create a function which rotates each image in the directory (if needed!!!)
 
-def rotateImages(rotationAmt, image_list):
+def rotateImages(rotationAmt, img_list):
     # for each image in the current directory
-    for image in image_list:
+    for image in img_list:
         # open the image
         img = Image.open(image)
         # rotate and save the image with the same filename
@@ -30,4 +30,27 @@ def rotateImages(rotationAmt, image_list):
         # close the image
         img.close()
 
-# rotateImages(90) #In this case the images seem to be rotated 270˚ counter clockwise
+#rotateImages(90) #In this case the images seem to be rotated 270˚ counter clockwise
+
+#Rotate the final image
+def rotate_img(img_path, rotate_degr):
+    image = Image.open(img_path)
+    image.rotate(rotate_degr, expand=1).save(img_path)
+    image.close()
+
+
+#Image grid
+
+def image_grid(image_list, rows, cols):
+    w, h = Image.open(image_list[0]).size
+
+    new_img = Image.new('RGB', size=(cols * w, rows * h))
+    grid_w, grid_h = new_img.size
+
+    for i, img in enumerate(image_list):
+        img = Image.open(img)
+
+        new_img.paste(img, box=(i % cols * w, i // cols * h))
+    return new_img
+
+
