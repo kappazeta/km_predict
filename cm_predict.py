@@ -12,7 +12,8 @@ import glob
 import pathlib
 from PIL import Image
 from math import ceil, floor
-
+import subprocess
+import shutil
 
 
 
@@ -106,6 +107,24 @@ class CMPredict(ulog.Loggable):
         Execute cm-vsm sub-tiling process
         """
         self.product_cvat = os.path.join(self.data_folder, (self.product_name + ".CVAT"))
+        cm_vsm_query = \
+            self.cfg["cm_vsm_executable"] + \
+            " -d " + os.path.abspath(self.product_safe) + \
+            " -b " + ",".join(self.cfg["features"]) + \
+            " -S " + str(self.cfg["tile_size"]) + \
+            " -f 0" + \
+            " -m " + self.cfg["RESAMPLING_METHOD"] + \
+            " -o " + str(self.cfg["overlapping"])
+        temp_logs_path = self.data_folder + "/" + self.product_name + ".log"
+        final_logs_path = self.product_cvat + "/" + self.product_name + ".log"
+
+        print("Starting cm-vsm...")
+        with subprocess.Popen(cm_vsm_query, shell=True, stdout=subprocess.PIPE) as cm_vsm_process:
+            for line in cm_vsm_process.stdout:
+                with open(temp_logs_path, 'a') as file:
+                    file.write(line.decode("utf-8"))
+        shutil.move(temp_logs_path, final_logs_path)
+        print("Sub-tiling has been done. Log file is avaliable in the .CVAT folder.", )
 
     def predict(self):
         """
@@ -217,7 +236,7 @@ def main():
     cmf.load_config(args.path_config)
     cmf.sub_tile()
     #cmf.predict()
-    cmf.mosaic()
+    #cmf.mosaic()
 
 
 if __name__ == "__main__":
