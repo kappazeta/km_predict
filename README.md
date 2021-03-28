@@ -1,7 +1,7 @@
 # cm_predict
 S2 full image prediction
 
-# Dependencies
+## Dependencies
 The following system dependencies are needed:
 * conda 4.9 or later
 * python 3.6 or later
@@ -13,6 +13,9 @@ The following system dependencies are needed:
 
 2. Copy `config/config_example.json` and adapt it to your needs.
 
+## Input data
+In the root of repository create a ```/data``` folder and place .SAFE product to it 
+
 ## Usage
 
 Cloudmask generating can be run as follows:
@@ -21,3 +24,6 @@ Cloudmask generating can be run as follows:
 conda activate cm_predict
 python cm_predict.py -c config/your_config.json
 ```
+
+## Output
+The predictor will generate sub-tiles masks under ```/prediction``` folder and full S2 mask under ```/big_image folder```
