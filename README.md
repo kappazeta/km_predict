@@ -27,4 +27,4 @@ python cm_predict.py -c config/your_config.json
 ```
 
 ## Output
-The predictor will generate sub-tiles masks under ```/prediction``` folder and full S2 mask under ```/big_image folder```
+The predictor will generate sub-tiles masks under ```/prediction``` folder and full S2 mask under ```/big_image``` folder
