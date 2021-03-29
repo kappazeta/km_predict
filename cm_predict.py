@@ -188,14 +188,17 @@ class CMPredict(ulog.Loggable):
         file_names =['prediction']
 
         # Create list of prediction images
-        image_list = [y for x in file_names for y in pathlib.Path(self.predict_folder).glob(f'**/{x}*.png')]
+        image_list = []
+        tile_paths = []
+
+        for subfolder in os.listdir(self.prediction_product_path):
+            image_list.append(pathlib.Path(os.path.join(self.prediction_product_path, subfolder, "prediction.png")))
+        #image_list = [y for x in file_names for y in pathlib.Path(self.predict_folder).glob(f'**/{x}*.png')]
 
         image_list.sort(key=lambda var: get_img_entry_id(var))
 
         # Rotate each image in the list 270˚ counter clockwise
-
-
-        #rotateImages(270, image_list)
+        rotateImages(270, image_list)
 
         # Raster mosaic
         """
@@ -226,8 +229,8 @@ def main():
     args = p.parse_args()
     cmf = CMPredict()
     cmf.load_config(args.path_config)
-    cmf.sub_tile()
-    cmf.predict()
+    #cmf.sub_tile()
+    #cmf.predict()
     cmf.mosaic()
 
 
