@@ -76,7 +76,7 @@ class CMPredict(ulog.Loggable):
         """
         self.product_name = d["product_name"]
         self.weights = d["weights"]
-        self.product = d["product"]
+        self.product = d["level_product"]
         self.overlapping = d["overlapping"]
         self.tile_size = d["tile_size"]
         self.features = d["features"]
@@ -113,7 +113,7 @@ class CMPredict(ulog.Loggable):
             " -b " + ",".join(self.cfg["features"]) + \
             " -S " + str(self.cfg["tile_size"]) + \
             " -f 0" + \
-            " -m " + self.cfg["RESAMPLING_METHOD"] + \
+            " -m " + self.cfg["resampling_method"] + \
             " -o " + str(self.cfg["overlapping"])
         temp_logs_path = self.data_folder + "/" + self.product_name + ".log"
         final_logs_path = self.product_cvat + "/" + self.product_name + ".log"
@@ -227,8 +227,8 @@ def main():
     cmf = CMPredict()
     cmf.load_config(args.path_config)
     cmf.sub_tile()
-    #cmf.predict()
-    #cmf.mosaic()
+    cmf.predict()
+    cmf.mosaic()
 
 
 if __name__ == "__main__":
