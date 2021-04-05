@@ -19,7 +19,7 @@ def save_masks_contrast(path_image, prediction, classification, saving_path, cla
             # current_class[current_class < 0.5] = 0
             current_class *= 255
             current_class = current_class.astype(np.uint8)
-            skio.imsave(saving_filename +".png", current_class)
+            skio.imsave(saving_filename +".png", current_class, check_contrast=False)
         classification = classification *63 + 3
         classification[classification > 255] = 20
         classification = classification.astype(np.uint8)
