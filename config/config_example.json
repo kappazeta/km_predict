@@ -1,7 +1,7 @@
 {
   "cm_vsm_executable" : "cm_vsm",
-  "product_name": "S2A_MSIL2A_20200824T093041_N0214_R136_T35VND_20200824T121941",
-  "weights": "all_april__061-0.10.hdf5",
+  "product_name": "S2B_MSIL2A_20200401T093029_N0214_R136_T34UFA_20200401T122148",
+  "weights": "unet_init__131-0.06.hdf5",
   "level_product": "L2A",
   "overlapping": 0,
   "tile_size": 512,

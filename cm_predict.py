@@ -86,6 +86,9 @@ class CMPredict(ulog.Loggable):
         self.product_safe = os.path.join(self.data_folder, str(self.product_name + ".SAFE"))
         self.weights_path = os.path.join(self.weigths_folder, self.weights)
         self.prediction_product_path = os.path.join(self.predict_folder, self.product_name)
+
+        self.product_cvat = os.path.join(self.data_folder, (self.product_name + ".CVAT"))
+
         if not os.path.exists(self.prediction_product_path):
             os.mkdir(self.prediction_product_path)
 
@@ -106,7 +109,6 @@ class CMPredict(ulog.Loggable):
         """
         Execute cm-vsm sub-tiling process
         """
-        self.product_cvat = os.path.join(self.data_folder, (self.product_name + ".CVAT"))
         cm_vsm_query = \
             self.cfg["cm_vsm_executable"] + \
             " -d " + os.path.abspath(self.product_safe) + \
@@ -150,8 +152,13 @@ class CMPredict(ulog.Loggable):
 
         tile_paths = []
 
+        # Look for .nc file, as the name is not specified
         for subfolder in os.listdir(self.product_cvat):
-            tile_paths.append(os.path.join(self.product_cvat, subfolder, "bands.nc"))
+            subfolder_path = os.path.join(self.product_cvat, subfolder)
+            if os.path.isdir(subfolder_path):
+                for file in os.listdir(subfolder_path):
+                    if file.endswith(".nc"):
+                        tile_paths.append(os.path.join(subfolder_path, file))
 
         # Initialize data generator
         self.params = {'path_input': self.product_cvat,
@@ -229,8 +236,8 @@ def main():
     args = p.parse_args()
     cmf = CMPredict()
     cmf.load_config(args.path_config)
-    #cmf.sub_tile()
-    #cmf.predict()
+    cmf.sub_tile()
+    cmf.predict()
     cmf.mosaic()
 
 
