@@ -7,10 +7,10 @@ from util.normalization import set_normalization
 from util.save_prediction_masks import save_masks_contrast
 import os
 import numpy as np
-from util.raster_mosaic import get_img_entry_id, rotateImages, rotate_img, image_grid
+from util.raster_mosaic import get_img_entry_id, rotateImages, rotate_img, image_grid, image_grid_overlap
 import glob
 import pathlib
-from PIL import Image
+from PIL import Image, ImageOps
 from math import ceil, floor
 import subprocess
 import shutil
@@ -216,7 +216,7 @@ class CMPredict(ulog.Loggable):
         2) Sets final image size from col*width, rows*height
         3) Creates final image from all sub-tiles, and bounding box parameters are also set 
         """
-        new_im = image_grid(image_list, rows=22, cols=22)
+        new_im = image_grid_overlap(image_list, rows=23, cols=23, crop=16)
 
         # Define a directory where to save a new file, resolution, etc.
         new_im.save(self.big_image_product +"/" +'mosaic.png', "PNG", quality=10980, optimize=True, progressive=True)
@@ -236,8 +236,8 @@ def main():
     args = p.parse_args()
     cmf = CMPredict()
     cmf.load_config(args.path_config)
-    cmf.sub_tile()
-    cmf.predict()
+    #cmf.sub_tile()
+    #cmf.predict()
     cmf.mosaic()
 
 
