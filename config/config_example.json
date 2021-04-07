@@ -1,9 +1,9 @@
 {
   "cm_vsm_executable" : "cm_vsm",
   "product_name": "S2B_MSIL2A_20200401T093029_N0214_R136_T34UFA_20200401T122148",
-  "weights": "unet_init__131-0.06.hdf5",
+  "weights": "all_april__061-0.10.hdf5",
   "level_product": "L2A",
-  "overlapping": 0,
+  "overlapping": 0.0625,
   "tile_size": 512,
   "features": ["AOT", "B01", "B02", "B03", "B04", "B05", "B06", "B08", "B8A", "B09", "B11", "B12", "WVP"],
   "resampling_method" : "sinc",
