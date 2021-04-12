@@ -236,8 +236,8 @@ def main():
     args = p.parse_args()
     cmf = CMPredict()
     cmf.load_config(args.path_config)
-    #cmf.sub_tile()
-    #cmf.predict()
+    cmf.sub_tile()
+    cmf.predict()
     cmf.mosaic()
 
 

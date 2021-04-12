@@ -16,8 +16,9 @@ class DataGenerator(Sequence):
         self.path = path_input
         self.stds = [0.00085, 0.04, 0.037, 0.035, 0.034, 0.035, 0.033, 0.035, 0.034, 0.054, 0.025, 0.021, 0.0083]
         self.means = [0.0009, 0.02, 0.02, 0.02, 0.02, 0.041, 0.047, 0.045, 0.06, 0.03, 0.03, 0.022, 0.015]
-        self.min_v = []
-        self.max_v = []
+        self.min_v = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+        self.max_v = [0.0039, 0.298, 0.282, 0.266, 0.255, 0.252, 0.246, 0.241, 0.241, 0.249, 0.219, 0.221, 0.076]
+        self.normalization = "minmax"
         self.list_indices = list_indices
         self.total_length = len(self.list_indices)
         self.batch_size = batch_size
@@ -74,12 +75,13 @@ class DataGenerator(Sequence):
         for i, file in enumerate(list_indices_temp):
             if os.path.isfile(file) and file.endswith('.nc'):
                 with nc.Dataset(file, 'r') as root:
-                    if self.png_form:
-                        data_bands = [(np.asarray(root[f])) * 1 / 255 for i, f in
+                    if self.normalization == "minmax":
+                        data_bands = [(np.asarray(root[f]) - self.min_v[i]) / (self.max_v[i] - self.min_v[i]) for i, f
+                                      in
                                       enumerate(self.features)]
                     else:
-                        data_bands = [(np.asarray(root[f]) - self.means[i]) / self.stds[i] for i, f in
-                                      enumerate(self.features)]
+                        data_bands = [(np.asarray(root[f]) - self.means[i]) / (self.stds[i]) for i, f
+                                      in enumerate(self.features)]
 
                     data_bands = np.stack(data_bands)
                     data_bands = np.rollaxis(data_bands, 0, 3)
