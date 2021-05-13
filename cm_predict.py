@@ -10,10 +10,11 @@ import numpy as np
 from util.raster_mosaic import get_img_entry_id, rotateImages, rotate_img, image_grid, image_grid_overlap
 import glob
 import pathlib
-from PIL import Image, ImageOps
+from PIL import Image, ImageOps, ImageFile
 from math import ceil, floor
 import subprocess
 import shutil
+import gdal
 
 
 
@@ -218,17 +219,74 @@ class CMPredict(ulog.Loggable):
         """
         new_im = image_grid_overlap(image_list, rows=23, cols=23, crop=16)
 
+        '''
+        1) Open any .jp2 file from initial product (10m band), transform it into GeoTiff
+        2) Get projection
+        3) Apply it for the final prediction mosaic in .tif format 
+        '''
+        ImageFile.LOAD_TRUNCATED_IMAGES = True
+        Image.MAX_IMAGE_PIXELS = None
+
+        #1
+        jp2 = []
+
+        for root, dirs, files in os.walk(self.product_safe):
+            if(root.endswith("R10m")):
+                for file in files:
+                    if(file.endswith(".jp2")):
+                        jp2.append(os.path.join(root, file))
+
+        in_image = gdal.Open(jp2[0])
+        driver = gdal.GetDriverByName("GTiff")
+        out_image = driver.CreateCopy((self.big_image_folder + "/" + 'projection.tif'), in_image, 0)
+        
+        in_image = None
+        out_image = None
+
+        tif = gdal.Open(self.big_image_folder + "/" + 'projection.tif')
+
+        #2
+        prj = tif.GetProjection()
+        gt = tif.GetGeoTransform()
+
         # Define a directory where to save a new file, resolution, etc.
+
         new_im.save(self.big_image_product +"/" +'mosaic.png', "PNG", quality=10980, optimize=True, progressive=True)
+        new_im.save(self.big_image_product + "/" + 'mosaic.tif', "TIFF", quality=10980, optimize=True, progressive=True)
 
-        #Rotate final mosaic for 90˚ counter clockwise
+        # Rotate final mosaic for 90˚ counter clockwise
+        rotate_img(self.big_image_product +"/" +'mosaic.png', 90)
+        rotate_img(self.big_image_product + "/" + 'mosaic.tif', 90)
 
-        rotate_img(self.big_image_product + "/" + 'mosaic.png', 90)
+        png_mos = Image.open(self.big_image_product +"/" +'mosaic.png')
+        tif_mos = Image.open(self.big_image_product +"/" +'mosaic.tif')
+
+
+        #Flip final mosaic horisontally
+        png_flip = ImageOps.flip(png_mos)
+        tif_flip = ImageOps.flip(tif_mos)
+
+        #Crop invalid pixels
+        png_crop = ImageOps.crop(png_flip, (0, 0, 60, 60))
+        tif_crop = ImageOps.crop(tif_flip, (0, 0, 60, 60))
+
+
+        #Save final files
+        png_crop.save(self.big_image_product +"/" +'mosaic.png')
+        tif_crop.save(self.big_image_product +"/" +'mosaic.tif')
+
+
+        #3
+        mosaic = gdal.OpenShared(self.big_image_product + "/" + 'mosaic.tif', gdal.GA_Update)
+        mosaic.SetProjection(prj)
+        mosaic.SetGeoTransform(gt)
+
+        #Delete the Geotiff projection/transformation file
+        os.remove(self.big_image_folder + "/" + 'projection.tif')
 
         # Create big_image/product_name folder with os.mkdir
         # Gather sub-tiles prediction from predict/product_name
         # Create image mosaic (preferably write in a separate file under /util)
-
 
 def main():
     p = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter)
