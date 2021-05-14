@@ -206,7 +206,7 @@ class CMPredict(ulog.Loggable):
         image_list.sort(key=lambda var: get_img_entry_id(var))
 
         # Rotate each image in the list 270˚ counter clockwise
-        rotateImages(270, image_list)
+        #rotateImages(270, image_list)
 
         # Raster mosaic
         """
@@ -251,15 +251,23 @@ class CMPredict(ulog.Loggable):
 
         # Define a directory where to save a new file, resolution, etc.
 
-        new_im.save(self.big_image_product +"/" +'mosaic.png', "PNG", quality=10980, optimize=True, progressive=True)
-        new_im.save(self.big_image_product + "/" + 'mosaic.tif', "TIFF", quality=10980, optimize=True, progressive=True)
+        #Get name and index from product name
+        date_name = self.product_name.rsplit('_', 4)[0].rsplit('_', 1)[1]
+        index_name = self.product_name.rsplit('_', 1)[0].rsplit('_', 1)[-1]
+
+        #Define the output names
+        png_name = self.big_image_product +"/" +"L2A_"+index_name+"_"+date_name +'_KZ_10m.png'
+        tif_name = self.big_image_product +"/" +"L2A_"+index_name+"_"+date_name +'_KZ_10m.tif'
+
+        new_im.save(png_name, "PNG", quality=10980, optimize=True, progressive=True)
+        new_im.save(tif_name, "TIFF", quality=10980, optimize=True, progressive=True)
 
         # Rotate final mosaic for 90˚ counter clockwise
-        rotate_img(self.big_image_product +"/" +'mosaic.png', 90)
-        rotate_img(self.big_image_product + "/" + 'mosaic.tif', 90)
+        rotate_img(png_name, 90)
+        rotate_img(tif_name, 90)
 
-        png_mos = Image.open(self.big_image_product +"/" +'mosaic.png')
-        tif_mos = Image.open(self.big_image_product +"/" +'mosaic.tif')
+        png_mos = Image.open(png_name)
+        tif_mos = Image.open(tif_name)
 
 
         #Flip final mosaic horisontally
@@ -272,12 +280,13 @@ class CMPredict(ulog.Loggable):
 
 
         #Save final files
-        png_crop.save(self.big_image_product +"/" +'mosaic.png')
-        tif_crop.save(self.big_image_product +"/" +'mosaic.tif')
+        png_crop.save(png_name)
+        tif_crop.save(tif_name)
+
 
 
         #3
-        mosaic = gdal.OpenShared(self.big_image_product + "/" + 'mosaic.tif', gdal.GA_Update)
+        mosaic = gdal.OpenShared(tif_name, gdal.GA_Update)
         mosaic.SetProjection(prj)
         mosaic.SetGeoTransform(gt)
 
@@ -294,8 +303,8 @@ def main():
     args = p.parse_args()
     cmf = CMPredict()
     cmf.load_config(args.path_config)
-    cmf.sub_tile()
-    cmf.predict()
+    #cmf.sub_tile()
+    #cmf.predict()
     cmf.mosaic()
 
 
