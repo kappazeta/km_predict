@@ -210,7 +210,7 @@ class CMPredict(ulog.Loggable):
         image_list.sort(key=lambda var: get_img_entry_id(var))
 
         # Rotate each image in the list 270˚ counter clockwise
-        #rotateImages(270, image_list)
+        rotateImages(270, image_list)
 
         # Raster mosaic
         """
@@ -283,7 +283,7 @@ def main():
     args = p.parse_args()
     cmf = CMPredict()
     cmf.load_config(args.path_config)
-    #cmf.sub_tile()
+    cmf.sub_tile()
     cmf.predict()
     cmf.mosaic()
 
