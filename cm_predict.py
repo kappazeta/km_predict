@@ -8,13 +8,13 @@ from util.save_prediction_masks import save_masks_contrast
 import os
 import numpy as np
 from util.raster_mosaic import get_img_entry_id, rotateImages, rotate_img, image_grid, image_grid_overlap
+from util.gdal_dep import get_projection
 import glob
 import pathlib
 from PIL import Image, ImageOps, ImageFile
 from math import ceil, floor
 import subprocess
 import shutil
-import gdal
 
 
 
@@ -219,11 +219,7 @@ class CMPredict(ulog.Loggable):
         """
         new_im = image_grid_overlap(image_list, rows=23, cols=23, crop=16)
 
-        '''
-        1) Open any .jp2 file from initial product (10m band), transform it into GeoTiff
-        2) Get projection
-        3) Apply it for the final prediction mosaic in .tif format 
-        '''
+
         ImageFile.LOAD_TRUNCATED_IMAGES = True
         Image.MAX_IMAGE_PIXELS = None
 
@@ -235,19 +231,6 @@ class CMPredict(ulog.Loggable):
                 for file in files:
                     if(file.endswith(".jp2")):
                         jp2.append(os.path.join(root, file))
-
-        in_image = gdal.Open(jp2[0])
-        driver = gdal.GetDriverByName("GTiff")
-        out_image = driver.CreateCopy((self.big_image_folder + "/" + 'projection.tif'), in_image, 0)
-        
-        in_image = None
-        out_image = None
-
-        tif = gdal.Open(self.big_image_folder + "/" + 'projection.tif')
-
-        #2
-        prj = tif.GetProjection()
-        gt = tif.GetGeoTransform()
 
         # Define a directory where to save a new file, resolution, etc.
 
@@ -283,15 +266,8 @@ class CMPredict(ulog.Loggable):
         png_crop.save(png_name)
         tif_crop.save(tif_name)
 
+        #get_projection(jp2, self.big_image_folder, tif_name)
 
-
-        #3
-        mosaic = gdal.OpenShared(tif_name, gdal.GA_Update)
-        mosaic.SetProjection(prj)
-        mosaic.SetGeoTransform(gt)
-
-        #Delete the Geotiff projection/transformation file
-        os.remove(self.big_image_folder + "/" + 'projection.tif')
 
         # Create big_image/product_name folder with os.mkdir
         # Gather sub-tiles prediction from predict/product_name
