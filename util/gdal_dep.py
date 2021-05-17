@@ -1,13 +1,13 @@
-import gdal
 import os
 
-'''
-1) Open any .jp2 file from initial product (10m band), transform it into GeoTiff
-2) Get projection
-3) Apply it for the final prediction mosaic in .tif format 
-'''
 
 def get_projection (image_list, big_im_path, tif_mosaic):
+    '''
+    1) Open any .jp2 file from initial product (10m band), transform it into GeoTiff
+    2) Get projection
+    3) Apply it for the final prediction mosaic in .tif format
+    '''
+    import gdal
     in_image = gdal.Open(image_list[0])
     driver = gdal.GetDriverByName("GTiff")
     out_image = driver.CreateCopy((big_im_path + "/" + 'projection.tif'), in_image, 0)
