@@ -123,3 +123,16 @@ class DataGenerator(Sequence):
             max_list.append(max_ar)
 
         return stds_list, means_list, unique_list, min_list, max_list
+
+    def get_sen2cor(self):
+        y = np.empty((len(self.list_indices), self.tile_size, self.tile_size, self.num_classes), dtype=int)
+        # Initialization
+        for i, file in enumerate(self.list_indices):
+            if os.path.isfile(file) and file.endswith('.nc'):
+                with nc.Dataset(file, 'r') as root:
+                    try:
+                        sen2cor = np.asarray(root["SCL"])
+                    except:
+                        print("Sen2Cor for confusion " + file + " not found")
+                    y[i] = np_utils.to_categorical(sen2cor, self.num_classes)
+        return y
