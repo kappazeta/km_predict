@@ -1,7 +1,7 @@
 {
   "cm_vsm_executable" : "cm_vsm",
   "product_name": "S2B_MSIL2A_20200401T093029_N0214_R136_T34UFA_20200401T122148",
-  "weights": "finetune__157-0.09.hdf5",
+  "weights": "finetune__133-0.10.hdf5",
   "level_product": "L2A",
   "overlapping": 0.0625,
   "tile_size": 512,
