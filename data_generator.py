@@ -125,14 +125,37 @@ class DataGenerator(Sequence):
         return stds_list, means_list, unique_list, min_list, max_list
 
     def get_sen2cor(self):
-        y = np.empty((len(self.list_indices), self.tile_size, self.tile_size, self.num_classes), dtype=int)
+        y = np.zeros((len(self.list_indices), self.tile_size, self.tile_size, self.num_classes), dtype=np.float32)
         # Initialization
         for i, file in enumerate(self.list_indices):
             if os.path.isfile(file) and file.endswith('.nc'):
                 with nc.Dataset(file, 'r') as root:
                     try:
                         sen2cor = np.asarray(root["SCL"])
+                        y[i] = np_utils.to_categorical(sen2cor, self.num_classes)
                     except:
                         print("Sen2Cor for confusion " + file + " not found")
-                    y[i] = np_utils.to_categorical(sen2cor, self.num_classes)
         return y
+
+    def store_orig(self, list_indices_temp, path_prediction):
+        """Save labels to folder"""
+        for i, file in enumerate(list_indices_temp):
+            if os.path.isfile(file) and file.endswith('.nc'):
+                with nc.Dataset(file, 'r') as root:
+                    y = np.empty((self.tile_size, self.tile_size, self.num_classes), dtype=int)
+                    data_bands = [np.asarray(root[f])
+                                  for i, f in enumerate(["TCI_R", "TCI_G", "TCI_B"])]
+                    data_bands = np.stack(data_bands)
+                    data_bands = np.rollaxis(data_bands, 0, 3)
+
+                    # img = Image.fromarray(data_bands, 'RGB')
+                    file_name = file.split(".")[0].split("/")[-1]
+                    # img.save(path_prediction+"/"+file_name+"orig.png")
+
+                    if not os.path.exists(path_prediction + "/" + file_name):
+                        os.mkdir(path_prediction + "/" + file_name)
+
+                    data_bands = data_bands.astype(np.uint8)
+                    skio.imsave(path_prediction + "/" + file_name + "/orig.png", data_bands)
+
+
