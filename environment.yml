@@ -8,6 +8,7 @@ dependencies:
   - conda-forge::pandas
   - conda-forge::scikit-learn
   - conda-forge::scikit-image
+  - conda-forge::rasterio
   - netcdf4
   - matplotlib
   - pytest
