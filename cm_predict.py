@@ -72,12 +72,15 @@ class CMPredict(ulog.Loggable):
         if not os.path.exists(self.big_image_folder):
             os.mkdir(self.big_image_folder)
 
-    def config_from_dict(self, d):
+    def config_from_dict(self, d, product_name):
         """
         Load configuration from a dictionary.
         :param d: Dictionary with the configuration tree.
         """
-        self.product_name = d["product_name"]
+        if product_name:
+            self.product_name = product_name
+        else:
+            self.product_name = d["product_name"]
         self.weights = d["weights"]
         self.product = d["level_product"]
         self.overlapping = d["overlapping"]
@@ -95,10 +98,10 @@ class CMPredict(ulog.Loggable):
         if not os.path.exists(self.prediction_product_path):
             os.mkdir(self.prediction_product_path)
 
-    def load_config(self, path):
+    def load_config(self, path, product_name):
         with open(path, "rt") as fi:
             self.cfg = json.load(fi)
-        self.config_from_dict(self.cfg)
+        self.config_from_dict(self.cfg, product_name)
 
     def get_model_by_name(self, name):
         if self.architecture in ARCH_MAP:
@@ -307,10 +310,15 @@ class CMPredict(ulog.Loggable):
 def main():
     p = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter)
     p.add_argument("-c", "--config", action="store", dest="path_config", help="Path to the configuration file.")
+    p.add_argument("-product", "--product", action="store", dest="product_name",
+                   help="Optional argument to overwrite product name in config.")
+    p.add_argument("-tiling", "--tiling", action="store", dest="sub_tiling", default=True,
+                   help="If False, disable sub-tiling if CVAT folder is created.")
     args = p.parse_args()
     cmf = CMPredict()
-    cmf.load_config(args.path_config)
-    cmf.sub_tile()
+    cmf.load_config(args.path_config, args.product_name)
+    if args.sub_tiling:
+        cmf.sub_tile()
     cmf.predict()
     cmf.mosaic()
 
