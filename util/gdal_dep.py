@@ -1,7 +1,7 @@
 import os
 
 
-def get_projection (image_list, big_im_path, tif_mosaic):
+def proj_gdal (image_list, big_im_path, tif_mosaic):
     '''
     1) Open any .jp2 file from initial product (10m band), transform it into GeoTiff
     2) Get projection

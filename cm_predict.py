@@ -8,13 +8,15 @@ from util.save_prediction_masks import save_masks_contrast
 import os
 import numpy as np
 from util.raster_mosaic import get_img_entry_id, rotateImages, rotate_img, image_grid, image_grid_overlap
-from util.gdal_dep import get_projection
+from util.rasterio_dep import proj_rasterio
+from util.gdal_dep import proj_gdal
 import glob
 import pathlib
 from PIL import Image, ImageOps, ImageFile
 from math import ceil, floor
 import subprocess
 import shutil
+import rasterio
 
 
 
@@ -270,8 +272,33 @@ class CMPredict(ulog.Loggable):
         png_crop.save(png_name)
         tif_crop.save(tif_name)
 
-        #get_projection(jp2, self.big_image_folder, tif_name)
+        proj_rasterio(jp2, tif_name)
+        #proj_gdal(jp2, self.big_image_folder, tif_name)
 
+        '''Assign 0-255 to 0-5 output
+           Save final single band raster'''
+
+        # Read band 1 (out of 3, they're identical)
+        with rasterio.open(tif_name) as tif:
+            profile = tif.profile.copy()
+            band1 = tif.read(1)
+
+        # Translate values
+            band1[band1 == 0] = 0
+            band1[band1 == 66] = 1
+            band1[band1 == 129] = 2
+            band1[band1 == 192] = 3
+            band1[band1 == 255] = 4
+            band1[band1 == 20] = 5
+
+
+            profile.update({"count": 1})
+
+            with rasterio.open(tif_name, 'w', **profile) as dst:
+               dst.write(band1, 1)
+
+
+        # Save 1 channel in final output
 
         # Create big_image/product_name folder with os.mkdir
         # Gather sub-tiles prediction from predict/product_name
