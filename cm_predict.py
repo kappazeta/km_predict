@@ -88,6 +88,7 @@ class CMPredict(ulog.Loggable):
         self.features = d["features"]
         self.batch_size = d["batch_size"]
         self.architecture = d["architecture"]
+        self.data_folder = d["folder_name"]
 
         self.product_safe = os.path.join(self.data_folder, str(self.product_name + ".SAFE"))
         self.weights_path = os.path.join(self.weigths_folder, self.weights)
@@ -312,12 +313,13 @@ def main():
     p.add_argument("-c", "--config", action="store", dest="path_config", help="Path to the configuration file.")
     p.add_argument("-product", "--product", action="store", dest="product_name",
                    help="Optional argument to overwrite product name in config.")
-    p.add_argument("-tiling", "--tiling", action="store", dest="sub_tiling", default=True,
-                   help="If False, disable sub-tiling if CVAT folder is created.")
+    p.add_argument("-t", "--no-tiling", action="store_true", dest="no_sub_tiling", default=False,
+                   help="Disable sub-tiling if CVAT folder is already created.")
+
     args = p.parse_args()
     cmf = CMPredict()
     cmf.load_config(args.path_config, args.product_name)
-    if args.sub_tiling:
+    if args.no_sub_tiling:
         cmf.sub_tile()
     cmf.predict()
     cmf.mosaic()
