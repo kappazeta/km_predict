@@ -57,7 +57,6 @@ class CMPredict(ulog.Loggable):
                        'dim': self.tile_size,
                        'num_classes': len(self.classes)
                        }
-        self.create_folders()
 
     def create_folders(self):
         """
@@ -71,6 +70,8 @@ class CMPredict(ulog.Loggable):
             os.mkdir(self.predict_folder)
         if not os.path.exists(self.big_image_folder):
             os.mkdir(self.big_image_folder)
+        if not os.path.exists(self.prediction_product_path):
+            os.mkdir(self.prediction_product_path)
 
     def config_from_dict(self, d, product_name):
         """
@@ -96,13 +97,11 @@ class CMPredict(ulog.Loggable):
 
         self.product_cvat = os.path.join(self.data_folder, (self.product_name + ".CVAT"))
 
-        if not os.path.exists(self.prediction_product_path):
-            os.mkdir(self.prediction_product_path)
-
     def load_config(self, path, product_name):
         with open(path, "rt") as fi:
             self.cfg = json.load(fi)
         self.config_from_dict(self.cfg, product_name)
+        self.create_folders()
 
     def get_model_by_name(self, name):
         if self.architecture in ARCH_MAP:
@@ -118,6 +117,7 @@ class CMPredict(ulog.Loggable):
         """
         cm_vsm_query = \
             self.cfg["cm_vsm_executable"] + \
+            " -j -1 " + \
             " -d " + os.path.abspath(self.product_safe) + \
             " -b " + ",".join(self.cfg["features"]) + \
             " -S " + str(self.cfg["tile_size"]) + \
@@ -319,7 +319,7 @@ def main():
     args = p.parse_args()
     cmf = CMPredict()
     cmf.load_config(args.path_config, args.product_name)
-    if args.no_sub_tiling:
+    if not args.no_sub_tiling:
         cmf.sub_tile()
     cmf.predict()
     cmf.mosaic()
