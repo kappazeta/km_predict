@@ -180,12 +180,12 @@ class CMPredict(ulog.Loggable):
         #set_normalization(predict_generator, tile_paths, 1)
         # Run prediction
         predictions = self.model.predict(predict_generator)
-        sen2cor = predict_generator.get_sen2cor()
-        mask = (sen2cor[:, :, :, 3] == 1)
-        prediction_union = predictions
-        prediction_union[mask, 3] = sen2cor[mask, 3]
-        y_pred = np.argmax(prediction_union, axis=3)
-        for i, prediction in enumerate(prediction_union):
+        #sen2cor = predict_generator.get_sen2cor()
+        #mask = (sen2cor[:, :, :, 3] == 1)
+        #prediction_union = predictions
+        #prediction_union[mask, 3] = sen2cor[mask, 3]
+        y_pred = np.argmax(predictions, axis=3)
+        for i, prediction in enumerate(predictions):
             save_masks_contrast(tile_paths[i], prediction, y_pred[i], self.prediction_product_path, self.classes)
         return
 
