@@ -117,6 +117,7 @@ class CMPredict(ulog.Loggable):
         """
         cm_vsm_query = \
             self.cfg["cm_vsm_executable"] + \
+            " -j -1 " + \
             " -d " + os.path.abspath(self.product_safe) + \
             " -b " + ",".join(self.cfg["features"]) + \
             " -S " + str(self.cfg["tile_size"]) + \
