@@ -36,7 +36,7 @@ class CMPredict(ulog.Loggable):
         self.data_folder = "data"
         self.weigths_folder = "weights"
         self.predict_folder = "prediction"
-        self.big_image_folder = "full_mosaic"
+        self.big_image_folder = "prediction"
         self.weights = ""
         self.product = "L2A"
         self.overlapping = True
