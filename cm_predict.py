@@ -319,7 +319,7 @@ def main():
     args = p.parse_args()
     cmf = CMPredict()
     cmf.load_config(args.path_config, args.product_name)
-    if args.no_sub_tiling:
+    if not args.no_sub_tiling:
         cmf.sub_tile()
     cmf.predict()
     cmf.mosaic()
