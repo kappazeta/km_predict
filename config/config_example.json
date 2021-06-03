@@ -2,7 +2,7 @@
   "cm_vsm_executable" : "cm_vsm",
   "folder_name": "data",
   "product_name": "S2A_MSIL2A_20200824T093041_N0214_R136_T35VND_20200824T121941",
-  "weights": "finetune__133-0.10.hdf5",
+  "weights": "smlr__030-0.07.hdf5",
   "level_product": "L2A",
   "overlapping": 0.0625,
   "tile_size": 512,
