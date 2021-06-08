@@ -86,6 +86,9 @@ def init_logging(verbosity, app_name, app_abbrev, logfile=None):
         log_handler.setFormatter(log_formatter)
         log.addHandler(log_handler)
 
-    log.info('{} started..'.format(app_name))
+    log.info('\n')
+    log.info('========================================================================================')
+    log.info('====================================== {} ======================================'.format(app_name))
+    log.info('========================================================================================')
 
     return log
