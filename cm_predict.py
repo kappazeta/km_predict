@@ -21,7 +21,7 @@ import rasterio
 
 
 class CMPredict(ulog.Loggable):
-    def __init__(self, log_abbrev="CMPred"):
+    def __init__(self, log_abbrev="CMP.P"):
         super().__init__(log_abbrev)
         self.cfg = {
             "data_dir": ".SAFE",
@@ -127,13 +127,12 @@ class CMPredict(ulog.Loggable):
         temp_logs_path = self.data_folder + "/" + self.product_name + ".log"
         final_logs_path = self.product_cvat + "/" + self.product_name + ".log"
 
-        print("Starting cm-vsm...")
+        self.log.info("Performing CM-VSM:")
         with subprocess.Popen(cm_vsm_query, shell=True, stdout=subprocess.PIPE) as cm_vsm_process:
             for line in cm_vsm_process.stdout:
                 with open(temp_logs_path, 'a') as file:
-                    file.write(line.decode("utf-8"))
-        shutil.move(temp_logs_path, final_logs_path)
-        print("Sub-tiling has been done. Log file is avaliable in the .CVAT folder.", )
+                    self.log.info(line.decode("utf-8").rstrip("\n"))
+        self.log.info("Sub-tiling has been done!")
 
     def predict(self):
         """
@@ -316,8 +315,13 @@ def main():
                    help="Optional argument to overwrite product name in config.")
     p.add_argument("-t", "--no-tiling", action="store_true", dest="no_sub_tiling", default=False,
                    help="Disable sub-tiling if CVAT folder is already created.")
+    p.add_argument("-v", "--verbosity", action="store", dest="verbosity", default=1,
+                   help="Verbosity level for logging: 0-WARNING, 1-INFO, 2-DEBUG. Default is 1.")
+    p.add_argument("-l", "--log-file", action="store", dest="log_file_path", default=os.path.join(pathlib.Path(__file__).parent.absolute(), 'cm_predict.log'),
+                   help="Optional argument to specify a location for .log file.")
 
     args = p.parse_args()
+    ulog.init_logging(int(args.verbosity),"cm_predict","CMP",args.log_file_path)
     cmf = CMPredict()
     cmf.load_config(args.path_config, args.product_name)
     if not args.no_sub_tiling:
