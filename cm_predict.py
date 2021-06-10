@@ -210,7 +210,8 @@ class CMPredict(ulog.Loggable):
         tile_paths = []
 
         for subfolder in os.listdir(self.prediction_product_path):
-            image_list.append(pathlib.Path(os.path.join(self.prediction_product_path, subfolder, "prediction.png")))
+            if os.path.isdir(os.path.join(self.prediction_product_path, subfolder)):
+                image_list.append(pathlib.Path(os.path.join(self.prediction_product_path, subfolder, "prediction.png")))
         #image_list = [y for x in file_names for y in pathlib.Path(self.predict_folder).glob(f'**/{x}*.png')]
 
         image_list.sort(key=lambda var: get_img_entry_id(var))
