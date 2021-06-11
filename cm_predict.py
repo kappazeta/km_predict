@@ -114,19 +114,23 @@ class CMPredict(ulog.Loggable):
             raise ValueError(("Unsupported architecture \"{}\"."
                               " Only the following architectures are supported: {}.").format(name, ARCH_MAP.keys()))
 
-    def sub_tile(self):
+    def sub_tile(self, path_out):
         """
         Execute cm-vsm sub-tiling process
         """
-        cm_vsm_query = \
-            self.cfg["cm_vsm_executable"] + \
-            " -j -1 " + \
-            " -d " + os.path.abspath(self.product_safe) + \
-            " -b " + ",".join(self.cfg["features"]) + \
-            " -S " + str(self.cfg["tile_size"]) + \
-            " -f 0" + \
-            " -m " + self.cfg["resampling_method"] + \
-            " -o " + str(self.cfg["overlapping"])
+        cm_vsm_query = (
+            "{path_bin} -j -1 -d {path_in} -b {bands} -S {tile_size} -f 0 -m {resampling} -o {overlap}"
+        ).format(
+            path_bin=self.cfg["cm_vsm_executable"],
+            path_in=os.path.abspath(self.product_safe),
+            bands=",".join(self.cfg["features"]),
+            tile_size=self.cfg["tile_size"],
+            resampling=self.cfg["resampling_method"],
+            overlap=self.cfg["overlapping"]
+        )
+        if path_out and len(path_out) > 0:
+            cm_vsm_query += " -O " + path_out
+            self.product_cvat = path_out
 
         self.log.info("Performing CM-VSM:")
         with subprocess.Popen(cm_vsm_query, shell=True, stdout=subprocess.PIPE) as cm_vsm_process:
@@ -326,18 +330,20 @@ def main():
     p.add_argument("-product", "--product", action="store", dest="product_name",
                    help="Optional argument to overwrite product name in config.")
     p.add_argument("-t", "--no-tiling", action="store_true", dest="no_sub_tiling", default=False,
-                   help="Disable sub-tiling if CVAT folder is already created.")
+                   help="Disable sub-tiling (the tile output directory has already been created).")
     p.add_argument("-v", "--verbosity", action="store", dest="verbosity", default=1,
                    help="Verbosity level for logging: 0-WARNING, 1-INFO, 2-DEBUG. Default is 1.")
     p.add_argument("-l", "--log-file", action="store", dest="log_file_path", default=os.path.join(pathlib.Path(__file__).parent.absolute(), 'cm_predict.log'),
                    help="Optional argument to specify a location for .log file.")
+    p.add_argument("-O", "--tiling-output", action="store", dest="path_out_tiling",
+                   help="Override the path to the tiling output directory.")
 
     args = p.parse_args()
     ulog.init_logging(int(args.verbosity),"cm_predict","CMP",args.log_file_path)
     cmf = CMPredict()
     cmf.load_config(args.path_config, args.product_name)
     if not args.no_sub_tiling:
-        cmf.sub_tile()
+        cmf.sub_tile(args.path_out_tiling)
     cmf.predict()
     cmf.mosaic()
 
