@@ -16,6 +16,7 @@
 
 import sys
 import logging
+from version import __version__
 
 
 class LogInfoFilter(logging.Filter):
@@ -86,6 +87,8 @@ def init_logging(verbosity, app_name, app_abbrev, logfile=None):
         log_handler.setFormatter(log_formatter)
         log.addHandler(log_handler)
 
-    log.info('{} started..'.format(app_name))
+    log.info('=' * 75)
+    log.info(('=' * 10) + (' {} '.format(app_name)) + ('version {} '.format(__version__)))
+    log.info('=' * 75)
 
     return log
