@@ -13,10 +13,12 @@ from util.gdal_dep import proj_gdal
 import glob
 import pathlib
 from PIL import Image, ImageOps, ImageFile
+from PIL.PngImagePlugin import PngImageFile, PngInfo
 from math import ceil, floor
 import subprocess
 import shutil
 import rasterio
+from version import __version__
 
 
 
@@ -57,6 +59,7 @@ class CMPredict(ulog.Loggable):
                        'dim': self.tile_size,
                        'num_classes': len(self.classes)
                        }
+        self.cm_vsm_version = 0
 
     def create_folders(self):
         """
@@ -124,14 +127,14 @@ class CMPredict(ulog.Loggable):
             " -f 0" + \
             " -m " + self.cfg["resampling_method"] + \
             " -o " + str(self.cfg["overlapping"])
-        temp_logs_path = self.data_folder + "/" + self.product_name + ".log"
-        final_logs_path = self.product_cvat + "/" + self.product_name + ".log"
 
         self.log.info("Performing CM-VSM:")
         with subprocess.Popen(cm_vsm_query, shell=True, stdout=subprocess.PIPE) as cm_vsm_process:
             for line in cm_vsm_process.stdout:
-                with open(temp_logs_path, 'a') as file:
-                    self.log.info(line.decode("utf-8").rstrip("\n"))
+                cm_vsm_output = line.decode("utf-8").rstrip("\n")
+                self.log.info(cm_vsm_output)
+                if "Version:" in cm_vsm_output:
+                    self.cm_vsm_version = cm_vsm_output.split(":")[1]
         self.log.info("Sub-tiling has been done!")
 
     def predict(self):
@@ -301,6 +304,15 @@ class CMPredict(ulog.Loggable):
             with rasterio.open(tif_name, 'w', **profile) as dst:
                dst.write(band1, 1)
 
+
+        tif_img = Image.open(tif_name)
+        tif_img.tag[305] = "CM_PREDICT V. {}; CM_VSM V. {}".format(__version__, self.cm_vsm_version)
+        tif_img.save(tif_name,tiffinfo=tif_img.tag)
+
+        png_img = PngImageFile(png_name)
+        metadata = PngInfo()
+        metadata.add_text("Software", "CM_PREDICT V. {}; CM_VSM V. {}".format(__version__, self.cm_vsm_version))
+        png_img.save(png_name, pnginfo=metadata)
 
         # Save 1 channel in final output
 
