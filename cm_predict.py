@@ -111,34 +111,36 @@ class CMPredict(ulog.Loggable):
             raise ValueError(("Unsupported architecture \"{}\"."
                               " Only the following architectures are supported: {}.").format(name, ARCH_MAP.keys()))
 
-    def sub_tile(self, path_out):
+    def sub_tile(self):
         """
         Execute cm-vsm sub-tiling process
         """
+        temp_cvat_path = self.product_cvat + ".part"
+        log_path = "{}/{}.log".format(temp_cvat_path, self.product_name)
+
         cm_vsm_query = (
-            "{path_bin} -j -1 -d {path_in} -b {bands} -S {tile_size} -f 0 -m {resampling} -o {overlap}"
+            "{path_bin} -j -1 -d {path_in} -b {bands} -S {tile_size} -f 0 -m {resampling} -o {overlap} -O {path_out}"
         ).format(
             path_bin=self.cfg["cm_vsm_executable"],
             path_in=os.path.abspath(self.product_safe),
             bands=",".join(self.cfg["features"]),
             tile_size=self.cfg["tile_size"],
             resampling=self.cfg["resampling_method"],
-            overlap=self.cfg["overlapping"]
+            overlap=self.cfg["overlapping"],
+            path_out=temp_cvat_path
         )
-        if path_out and len(path_out) > 0:
-            cm_vsm_query += " -O " + path_out
-            self.product_cvat = path_out
 
-        temp_logs_path = self.data_folder + "/" + self.product_name + ".log"
-        final_logs_path = self.product_cvat + "/" + self.product_name + ".log"
+        print("Running cm-vsm.")
+        if not os.path.exists(temp_cvat_path):
+            os.mkdir(temp_cvat_path)
 
-        print("Starting cm-vsm...")
         with subprocess.Popen(cm_vsm_query, shell=True, stdout=subprocess.PIPE) as cm_vsm_process:
             for line in cm_vsm_process.stdout:
-                with open(temp_logs_path, 'a') as file:
+                with open(log_path, 'a') as file:
                     file.write(line.decode("utf-8"))
-        shutil.move(temp_logs_path, final_logs_path)
-        print("Sub-tiling has been done. Log file is avaliable in the .CVAT folder.", )
+
+        shutil.move(temp_cvat_path, self.product_cvat)
+        print("Sub-tiling has been done.")
 
     def predict(self):
         """
@@ -321,14 +323,12 @@ def main():
                    help="Optional argument to overwrite product name in config.")
     p.add_argument("-t", "--no-tiling", action="store_true", dest="no_sub_tiling", default=False,
                    help="Disable sub-tiling (the tile output directory has already been created).")
-    p.add_argument("-O", "--tiling-output", action="store", dest="path_out_tiling",
-                   help="Override the path to the tiling output directory.")
 
     args = p.parse_args()
     cmf = CMPredict()
     cmf.load_config(args.path_config, args.product_name)
     if not args.no_sub_tiling:
-        cmf.sub_tile(args.path_out_tiling)
+        cmf.sub_tile()
     cmf.predict()
     cmf.mosaic()
 
