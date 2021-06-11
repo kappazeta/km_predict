@@ -8,7 +8,7 @@ class Unet(CMModel):
     """
 
     def __init__(self):
-        super(Unet, self).__init__("Unet")
+        super(Unet, self).__init__("CMP.M")
 
     def construct(self, width, height, num_channels, num_categories, pretrained_weights=False):
         """

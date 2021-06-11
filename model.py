@@ -26,8 +26,8 @@ class CMModel(log.Loggable):
     """
     A generic model class to be subclassed by specific model architecture classes.
     """
-
-    def __init__(self, log_abbrev='CMM'):
+    # log_abbrev is CMP.M which comes from architectures.py.__init__
+    def __init__(self, log_abbrev):
         super(CMModel, self).__init__(log_abbrev)
 
         self.input_shape = (512, 512, 10)
@@ -69,8 +69,7 @@ class CMModel(log.Loggable):
         self.model.compile(optimizer=l_op, loss=self.dice_loss, #self.dice_loss, #'categorical_crossentropy',
                            metrics=[self.METRICS_SET["precision"], self.METRICS_SET["recall"],
                                     self.METRICS_SET["categorical_acc"], self.METRICS_SET['f1']])
-        print("new optimizer")
-        self.model.summary()
+        self.model.summary(print_fn=self.log.info)
 
         return self.model
 

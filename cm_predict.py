@@ -13,15 +13,17 @@ from util.gdal_dep import proj_gdal
 import glob
 import pathlib
 from PIL import Image, ImageOps, ImageFile
+from PIL.PngImagePlugin import PngImageFile, PngInfo
 from math import ceil, floor
 import subprocess
 import shutil
 import rasterio
+from version import __version__
 
 
 
 class CMPredict(ulog.Loggable):
-    def __init__(self, log_abbrev="CMPred"):
+    def __init__(self, log_abbrev="CMP.P"):
         super().__init__(log_abbrev)
         self.cfg = {
             "data_dir": ".SAFE",
@@ -57,6 +59,7 @@ class CMPredict(ulog.Loggable):
                        'dim': self.tile_size,
                        'num_classes': len(self.classes)
                        }
+        self.cm_vsm_version = 0
 
     def create_folders(self):
         """
@@ -129,16 +132,14 @@ class CMPredict(ulog.Loggable):
             cm_vsm_query += " -O " + path_out
             self.product_cvat = path_out
 
-        temp_logs_path = self.data_folder + "/" + self.product_name + ".log"
-        final_logs_path = self.product_cvat + "/" + self.product_name + ".log"
-
-        print("Starting cm-vsm...")
+        self.log.info("Performing CM-VSM:")
         with subprocess.Popen(cm_vsm_query, shell=True, stdout=subprocess.PIPE) as cm_vsm_process:
             for line in cm_vsm_process.stdout:
-                with open(temp_logs_path, 'a') as file:
-                    file.write(line.decode("utf-8"))
-        shutil.move(temp_logs_path, final_logs_path)
-        print("Sub-tiling has been done. Log file is avaliable in the .CVAT folder.", )
+                cm_vsm_output = line.decode("utf-8").rstrip("\n")
+                self.log.info(cm_vsm_output)
+                if "Version:" in cm_vsm_output:
+                    self.cm_vsm_version = cm_vsm_output.split(":")[1]
+        self.log.info("Sub-tiling has been done!")
 
     def predict(self):
         """
@@ -308,6 +309,15 @@ class CMPredict(ulog.Loggable):
                dst.write(band1, 1)
 
 
+        tif_img = Image.open(tif_name)
+        tif_img.tag[305] = "CM_PREDICT V. {}; CM_VSM V. {}".format(__version__, self.cm_vsm_version)
+        tif_img.save(tif_name,tiffinfo=tif_img.tag)
+
+        png_img = PngImageFile(png_name)
+        metadata = PngInfo()
+        metadata.add_text("Software", "CM_PREDICT V. {}; CM_VSM V. {}".format(__version__, self.cm_vsm_version))
+        png_img.save(png_name, pnginfo=metadata)
+
         # Save 1 channel in final output
 
         # Create big_image/product_name folder with os.mkdir
@@ -321,10 +331,15 @@ def main():
                    help="Optional argument to overwrite product name in config.")
     p.add_argument("-t", "--no-tiling", action="store_true", dest="no_sub_tiling", default=False,
                    help="Disable sub-tiling (the tile output directory has already been created).")
+    p.add_argument("-v", "--verbosity", action="store", dest="verbosity", default=1,
+                   help="Verbosity level for logging: 0-WARNING, 1-INFO, 2-DEBUG. Default is 1.")
+    p.add_argument("-l", "--log-file", action="store", dest="log_file_path", default=os.path.join(pathlib.Path(__file__).parent.absolute(), 'cm_predict.log'),
+                   help="Optional argument to specify a location for .log file.")
     p.add_argument("-O", "--tiling-output", action="store", dest="path_out_tiling",
                    help="Override the path to the tiling output directory.")
 
     args = p.parse_args()
+    ulog.init_logging(int(args.verbosity),"cm_predict","CMP",args.log_file_path)
     cmf = CMPredict()
     cmf.load_config(args.path_config, args.product_name)
     if not args.no_sub_tiling:
