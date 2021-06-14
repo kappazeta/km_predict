@@ -36,7 +36,6 @@ class CMPredict(ulog.Loggable):
         self.data_folder = "data"
         self.weigths_folder = "weights"
         self.predict_folder = "prediction"
-        self.big_image_folder = "prediction"
         self.weights = ""
         self.product = "L2A"
         self.overlapping = True
@@ -68,8 +67,6 @@ class CMPredict(ulog.Loggable):
             os.mkdir(self.weigths_folder)
         if not os.path.exists(self.predict_folder):
             os.mkdir(self.predict_folder)
-        if not os.path.exists(self.big_image_folder):
-            os.mkdir(self.big_image_folder)
         if not os.path.exists(self.prediction_product_path):
             os.mkdir(self.prediction_product_path)
 
@@ -93,7 +90,7 @@ class CMPredict(ulog.Loggable):
 
         self.product_safe = os.path.join(self.data_folder, str(self.product_name + ".SAFE"))
         self.weights_path = os.path.join(self.weigths_folder, self.weights)
-        self.prediction_product_path = os.path.join(self.predict_folder, self.product_name)
+        self.prediction_product_path = os.path.join(self.predict_folder, self.product_name + ".part")
 
         self.product_cvat = os.path.join(self.data_folder, (self.product_name + ".CVAT"))
 
@@ -201,15 +198,6 @@ class CMPredict(ulog.Loggable):
         Make a mosaic output from obtained predictions
         Next step: Take into account overlapping argument
         """
-        #self.product_name #tile name
-        # self.big_image_folder#big image (directory)
-
-        self.big_image_product = self.big_image_folder + "/" + self.product_name
-        if not os.path.exists(self.big_image_product):
-            os.mkdir(self.big_image_product)
-
-        # self.predict_folder #working_path
-
         file_names =['prediction']
 
         # Create list of prediction images
@@ -257,8 +245,8 @@ class CMPredict(ulog.Loggable):
         index_name = self.product_name.rsplit('_', 1)[0].rsplit('_', 1)[-1]
 
         #Define the output names
-        png_name = self.big_image_product +"/" +"L2A_"+index_name+"_"+date_name +'_KZ_10m.png'
-        tif_name = self.big_image_product +"/" +"L2A_"+index_name+"_"+date_name +'_KZ_10m.tif'
+        png_name = "{}/L2A_{}_{}_KZ_10m.png".format(self.prediction_product_path, index_name, date_name)
+        tif_name = png_name.replace(".png", ".tif")
 
         new_im.save(png_name, "PNG", quality=10980, optimize=True, progressive=True)
         new_im.save(tif_name, "TIFF", quality=10980, optimize=True, progressive=True)
@@ -285,7 +273,7 @@ class CMPredict(ulog.Loggable):
         tif_crop.save(tif_name)
 
         proj_rasterio(jp2, tif_name)
-        #proj_gdal(jp2, self.big_image_folder, tif_name)
+        #proj_gdal(jp2, self.predict_folder, tif_name)
 
         '''Assign 0-255 to 0-5 output
            Save final single band raster'''
@@ -316,6 +304,15 @@ class CMPredict(ulog.Loggable):
         # Gather sub-tiles prediction from predict/product_name
         # Create image mosaic (preferably write in a separate file under /util)
 
+    def finalize(self):
+        """
+        Remove .part from the end of the results folder
+        """
+        if self.prediction_product_path.endswith(".part"):
+            final_path = self.prediction_product_path.replace(".part", "")
+            shutil.move(self.prediction_product_path, final_path)
+
+
 def main():
     p = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter)
     p.add_argument("-c", "--config", action="store", dest="path_config", help="Path to the configuration file.")
@@ -331,6 +328,7 @@ def main():
         cmf.sub_tile()
     cmf.predict()
     cmf.mosaic()
+    cmf.finalize()
 
 
 if __name__ == "__main__":
