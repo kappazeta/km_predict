@@ -27,13 +27,12 @@ class CMPredict(ulog.Loggable):
         super().__init__(log_abbrev)
         self.cfg = {
             "data_dir": ".SAFE",
-            "weights": "",
             "product": "L2A",
             "overlapping": True,
             "tile_size": 512,
-            "features": ["AOT", "B01", "B02", "B03", "B04", "B05", "B06", "B08", "B8A", "B09", "B11", "B12", "WVP"],
             "batch_size": 1
         }
+        self.cm_vsm_executable = "cm_vsm"
         self.product_name = ""
         self.data_folder = "data"
         self.weigths_folder = "weights"
@@ -43,6 +42,7 @@ class CMPredict(ulog.Loggable):
         self.product = "L2A"
         self.overlapping = True
         self.tile_size = 512
+        self.resampling_method = "sinc"
         self.features = ["AOT", "B01", "B02", "B03", "B04", "B05", "B06", "B08", "B8A", "B09", "B11", "B12", "WVP"]
         self.classes = [
             "UNDEFINED", "CLEAR", "CLOUD_SHADOW", "SEMI_TRANSPARENT_CLOUD", "CLOUD", "MISSING"
@@ -81,15 +81,21 @@ class CMPredict(ulog.Loggable):
         Load configuration from a dictionary.
         :param d: Dictionary with the configuration tree.
         """
+        self.cm_vsm_executable = d["cm_vsm_executable"]
         if product_name:
             self.product_name = product_name
         else:
             self.product_name = d["product_name"]
-        self.weights = d["weights"]
+        if d["level_product"] == "L2A":
+            self.weights = "l2a__030-0.07.hdf5"
+            self.features = ["AOT", "B01", "B02", "B03", "B04", "B05", "B06", "B08", "B8A", "B09", "B11", "B12", "WVP"]
+        elif d["level_product"] == "L1C":
+            self.weights = "l1c__091-0.42.hdf5"
+            self.features = ["B01", "B02", "B03", "B04", "B05", "B06", "B08", "B8A", "B09", "B10", "B11", "B12"]
         self.product = d["level_product"]
         self.overlapping = d["overlapping"]
         self.tile_size = d["tile_size"]
-        self.features = d["features"]
+        self.resampling_method = d["resampling_method"]
         self.batch_size = d["batch_size"]
         self.architecture = d["architecture"]
         self.data_folder = d["folder_name"]
@@ -121,12 +127,12 @@ class CMPredict(ulog.Loggable):
         cm_vsm_query = (
             "{path_bin} -j -1 -d {path_in} -b {bands} -S {tile_size} -f 0 -m {resampling} -o {overlap}"
         ).format(
-            path_bin=self.cfg["cm_vsm_executable"],
+            path_bin=self.cm_vsm_executable,
             path_in=os.path.abspath(self.product_safe),
-            bands=",".join(self.cfg["features"]),
-            tile_size=self.cfg["tile_size"],
-            resampling=self.cfg["resampling_method"],
-            overlap=self.cfg["overlapping"]
+            bands=",".join(self.features),
+            tile_size=self.tile_size,
+            resampling=self.resampling_method,
+            overlap=self.overlapping
         )
         if path_out and len(path_out) > 0:
             cm_vsm_query += " -O " + path_out
@@ -179,6 +185,7 @@ class CMPredict(ulog.Loggable):
                        'features': self.features,
                        'tile_size': self.tile_size,
                        'num_classes': len(self.classes),
+                       'product_level': self.product,
                        'shuffle': False
                        }
         predict_generator = DataGenerator(tile_paths, **self.params)
@@ -242,12 +249,18 @@ class CMPredict(ulog.Loggable):
 
         #1
         jp2 = []
-
-        for root, dirs, files in os.walk(self.product_safe):
-            if(root.endswith("R10m")):
-                for file in files:
-                    if(file.endswith(".jp2")):
-                        jp2.append(os.path.join(root, file))
+        if self.product == "L2A":
+            for root, dirs, files in os.walk(self.product_safe):
+                if(root.endswith("R10m")):
+                    for file in files:
+                        if(file.endswith(".jp2")):
+                            jp2.append(os.path.join(root, file))
+        elif self.product == "L1C":
+            for root, dirs, files in os.walk(self.product_safe):
+                if(root.endswith("IMG_DATA")):
+                    for file in files:
+                        if(file.endswith(".jp2")):
+                            jp2.append(os.path.join(root, file))
 
         # Define a directory where to save a new file, resolution, etc.
 
@@ -256,8 +269,8 @@ class CMPredict(ulog.Loggable):
         index_name = self.product_name.rsplit('_', 1)[0].rsplit('_', 1)[-1]
 
         #Define the output names
-        png_name = self.big_image_product +"/" +"L2A_"+index_name+"_"+date_name +'_KZ_10m.png'
-        tif_name = self.big_image_product +"/" +"L2A_"+index_name+"_"+date_name +'_KZ_10m.tif'
+        png_name = self.big_image_product +"/" + self.product+"_" +index_name+"_"+date_name +'_KZ_10m.png'
+        tif_name = self.big_image_product +"/" + self.product+ "_"+ index_name+"_"+date_name +'_KZ_10m.tif'
 
         new_im.save(png_name, "PNG", quality=10980, optimize=True, progressive=True)
         new_im.save(tif_name, "TIFF", quality=10980, optimize=True, progressive=True)
@@ -339,7 +352,7 @@ def main():
                    help="Override the path to the tiling output directory.")
 
     args = p.parse_args()
-    ulog.init_logging(int(args.verbosity),"cm_predict","CMP",args.log_file_path)
+    ulog.init_logging(int(args.verbosity), "cm_predict", "CMP", args.log_file_path)
     cmf = CMPredict()
     cmf.load_config(args.path_config, args.product_name)
     if not args.no_sub_tiling:
