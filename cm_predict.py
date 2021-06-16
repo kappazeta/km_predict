@@ -59,7 +59,7 @@ class CMPredict(ulog.Loggable):
                        'dim': self.tile_size,
                        'num_classes': len(self.classes)
                        }
-        self.cm_vsm_version = 0
+        self.cm_vsm_version = "-"
 
     def create_folders(self):
         """
