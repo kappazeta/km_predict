@@ -10,14 +10,20 @@ import numpy as np
 
 
 class DataGenerator(Sequence):
-    def __init__(self, list_indices, path_input, batch_size, features, tile_size, num_classes, shuffle=True,
-                 png_form=False):
+    def __init__(self, list_indices, path_input, batch_size, features, tile_size, num_classes, product_level,
+                 shuffle=True, png_form=False):
         """ Initialization """
         self.path = path_input
-        self.stds = [0.00085, 0.04, 0.037, 0.035, 0.034, 0.035, 0.033, 0.035, 0.034, 0.054, 0.025, 0.021, 0.0083]
-        self.means = [0.0009, 0.02, 0.02, 0.02, 0.02, 0.041, 0.047, 0.045, 0.06, 0.03, 0.03, 0.022, 0.015]
-        self.min_v = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
-        self.max_v = [0.0039, 0.298, 0.282, 0.266, 0.255, 0.252, 0.246, 0.241, 0.241, 0.249, 0.219, 0.221, 0.076]
+        if product_level == "L2A":
+            self.stds = [0.00085, 0.04, 0.037, 0.035, 0.034, 0.035, 0.033, 0.035, 0.034, 0.054, 0.025, 0.021, 0.0083]
+            self.means = [0.0009, 0.02, 0.02, 0.02, 0.02, 0.041, 0.047, 0.045, 0.06, 0.03, 0.03, 0.022, 0.015]
+            self.min_v = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+            self.max_v = [0.0039, 0.298, 0.282, 0.266, 0.255, 0.252, 0.246, 0.241, 0.241, 0.249, 0.219, 0.221, 0.076]
+        elif product_level == "L1C":
+            self.stds = [0.0246, 0.025, 0.0246, 0.0271, 0.0271, 0.0279, 0.0288, 0.0303, 0.0175, 0.00498, 0.0206, 0.017]
+            self.means = [0.0319, 0.0283, 0.0258, 0.0245, 0.0283, 0.0398, 0.0438, 0.048, 0.0198, 0.0028, 0.0286, 0.0199]
+            self.min_v = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+            self.max_v = [0.19, 0.298, 0.279, 0.293, 0.243, 0.247, 0.317, 0.354, 0.153, 0.055, 0.24, 0.23]
         self.normalization = "minmax"
         self.list_indices = list_indices
         self.total_length = len(self.list_indices)
