@@ -1,12 +1,10 @@
 {
   "cm_vsm_executable" : "cm_vsm",
   "folder_name": "data",
-  "product_name": "S2A_MSIL2A_20200824T093041_N0214_R136_T35VND_20200824T121941",
-  "weights": "smlr__030-0.07.hdf5",
-  "level_product": "L2A",
+  "product_name": "S2A_MSIL1C_20210608T103021_N0300_R108_T31TFJ_20210608T123816",
+  "level_product": "L1C",
   "overlapping": 0.0625,
   "tile_size": 512,
-  "features": ["AOT", "B01", "B02", "B03", "B04", "B05", "B06", "B08", "B8A", "B09", "B11", "B12", "WVP"],
   "resampling_method" : "sinc",
   "architecture": "Unet",
   "batch_size": 1

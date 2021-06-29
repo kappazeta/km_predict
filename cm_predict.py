@@ -27,13 +27,12 @@ class CMPredict(ulog.Loggable):
         super().__init__(log_abbrev)
         self.cfg = {
             "data_dir": ".SAFE",
-            "weights": "",
             "product": "L2A",
             "overlapping": True,
             "tile_size": 512,
-            "features": ["AOT", "B01", "B02", "B03", "B04", "B05", "B06", "B08", "B8A", "B09", "B11", "B12", "WVP"],
             "batch_size": 1
         }
+        self.cm_vsm_executable = "cm_vsm"
         self.product_name = ""
         self.data_folder = "data"
         self.weigths_folder = "weights"
@@ -43,6 +42,7 @@ class CMPredict(ulog.Loggable):
         self.product = "L2A"
         self.overlapping = True
         self.tile_size = 512
+        self.resampling_method = "sinc"
         self.features = ["AOT", "B01", "B02", "B03", "B04", "B05", "B06", "B08", "B8A", "B09", "B11", "B12", "WVP"]
         self.classes = [
             "UNDEFINED", "CLEAR", "CLOUD_SHADOW", "SEMI_TRANSPARENT_CLOUD", "CLOUD", "MISSING"
@@ -59,7 +59,7 @@ class CMPredict(ulog.Loggable):
                        'dim': self.tile_size,
                        'num_classes': len(self.classes)
                        }
-        self.cm_vsm_version = 0
+        self.cm_vsm_version = "-"
 
     def create_folders(self):
         """
@@ -81,15 +81,21 @@ class CMPredict(ulog.Loggable):
         Load configuration from a dictionary.
         :param d: Dictionary with the configuration tree.
         """
+        self.cm_vsm_executable = d["cm_vsm_executable"]
         if product_name:
             self.product_name = product_name
         else:
             self.product_name = d["product_name"]
-        self.weights = d["weights"]
+        if d["level_product"] == "L2A":
+            self.weights = "l2a__030-0.07.hdf5"
+            self.features = ["AOT", "B01", "B02", "B03", "B04", "B05", "B06", "B08", "B8A", "B09", "B11", "B12", "WVP"]
+        elif d["level_product"] == "L1C":
+            self.weights = "l1c__091-0.42.hdf5"
+            self.features = ["B01", "B02", "B03", "B04", "B05", "B06", "B08", "B8A", "B09", "B10", "B11", "B12"]
         self.product = d["level_product"]
         self.overlapping = d["overlapping"]
         self.tile_size = d["tile_size"]
-        self.features = d["features"]
+        self.resampling_method = d["resampling_method"]
         self.batch_size = d["batch_size"]
         self.architecture = d["architecture"]
         self.data_folder = d["folder_name"]
@@ -121,12 +127,12 @@ class CMPredict(ulog.Loggable):
         cm_vsm_query = (
             "{path_bin} -j -1 -d {path_in} -b {bands} -S {tile_size} -f 0 -m {resampling} -o {overlap}"
         ).format(
-            path_bin=self.cfg["cm_vsm_executable"],
+            path_bin=self.cm_vsm_executable,
             path_in=os.path.abspath(self.product_safe),
-            bands=",".join(self.cfg["features"]),
-            tile_size=self.cfg["tile_size"],
-            resampling=self.cfg["resampling_method"],
-            overlap=self.cfg["overlapping"]
+            bands=",".join(self.features),
+            tile_size=self.tile_size,
+            resampling=self.resampling_method,
+            overlap=self.overlapping
         )
         if path_out and len(path_out) > 0:
             cm_vsm_query += " -O " + path_out
@@ -179,6 +185,7 @@ class CMPredict(ulog.Loggable):
                        'features': self.features,
                        'tile_size': self.tile_size,
                        'num_classes': len(self.classes),
+                       'product_level': self.product,
                        'shuffle': False
                        }
         predict_generator = DataGenerator(tile_paths, **self.params)
@@ -200,26 +207,19 @@ class CMPredict(ulog.Loggable):
         Make a mosaic output from obtained predictions
         Next step: Take into account overlapping argument
         """
-        #self.product_name #tile name
-        # self.big_image_folder#big image (directory)
 
-        self.big_image_product = self.big_image_folder + "/" + self.product_name
-        if not os.path.exists(self.big_image_product):
-            os.mkdir(self.big_image_product)
-
-        # self.predict_folder #working_path
-
-        file_names =['prediction']
+        big_image_product = os.path.join(self.big_image_folder, self.product_name)
+        if not os.path.exists(big_image_product):
+            os.mkdir(big_image_product)
 
         # Create list of prediction images
         image_list = []
-        tile_paths = []
 
         for subfolder in os.listdir(self.prediction_product_path):
             if os.path.isdir(os.path.join(self.prediction_product_path, subfolder)):
                 image_list.append(pathlib.Path(os.path.join(self.prediction_product_path, subfolder, "prediction.png")))
-        #image_list = [y for x in file_names for y in pathlib.Path(self.predict_folder).glob(f'**/{x}*.png')]
 
+        # Sort images by asc
         image_list.sort(key=lambda var: get_img_entry_id(var))
 
         # Rotate each image in the list 270˚ counter clockwise
@@ -236,28 +236,33 @@ class CMPredict(ulog.Loggable):
         """
         new_im = image_grid_overlap(image_list, rows=23, cols=23, crop=16)
 
-
         ImageFile.LOAD_TRUNCATED_IMAGES = True
         Image.MAX_IMAGE_PIXELS = None
 
-        #1
         jp2 = []
-
-        for root, dirs, files in os.walk(self.product_safe):
-            if(root.endswith("R10m")):
-                for file in files:
-                    if(file.endswith(".jp2")):
-                        jp2.append(os.path.join(root, file))
+        # For correct georeference it is necessary to use 10m resolution band
+        if self.product == "L2A":
+            for root, dirs, files in os.walk(self.product_safe):
+                if(root.endswith("R10m")):
+                    for file in files:
+                        if(file.endswith(".jp2")):
+                            jp2.append(os.path.join(root, file))
+        elif self.product == "L1C":
+            for root, dirs, files in os.walk(self.product_safe):
+                if(root.endswith("IMG_DATA")):
+                    for file in files:
+                        if(file.endswith("B02.jp2")):
+                            jp2.append(os.path.join(root, file))
 
         # Define a directory where to save a new file, resolution, etc.
 
-        #Get name and index from product name
+        # Get name and index from product name
         date_name = self.product_name.rsplit('_', 4)[0].rsplit('_', 1)[1]
         index_name = self.product_name.rsplit('_', 1)[0].rsplit('_', 1)[-1]
 
-        #Define the output names
-        png_name = self.big_image_product +"/" +"L2A_"+index_name+"_"+date_name +'_KZ_10m.png'
-        tif_name = self.big_image_product +"/" +"L2A_"+index_name+"_"+date_name +'_KZ_10m.tif'
+        # Define the output names
+        png_name = os.path.join(big_image_product, self.product + "_" + index_name + "_" + date_name + '_KZ_10m.png')
+        tif_name = os.path.join(big_image_product, self.product + "_" + index_name + "_" + date_name + '_KZ_10m.tif')
 
         new_im.save(png_name, "PNG", quality=10980, optimize=True, progressive=True)
         new_im.save(tif_name, "TIFF", quality=10980, optimize=True, progressive=True)
@@ -269,32 +274,30 @@ class CMPredict(ulog.Loggable):
         png_mos = Image.open(png_name)
         tif_mos = Image.open(tif_name)
 
-
-        #Flip final mosaic horisontally
+        # Flip final mosaic horizontally
         png_flip = ImageOps.flip(png_mos)
         tif_flip = ImageOps.flip(tif_mos)
 
-        #Crop invalid pixels
+        # Crop invalid pixels
         png_crop = ImageOps.crop(png_flip, (0, 0, 60, 60))
         tif_crop = ImageOps.crop(tif_flip, (0, 0, 60, 60))
 
-
-        #Save final files
+        # Save final files
         png_crop.save(png_name)
         tif_crop.save(tif_name)
 
         proj_rasterio(jp2, tif_name)
-        #proj_gdal(jp2, self.big_image_folder, tif_name)
 
-        '''Assign 0-255 to 0-5 output
-           Save final single band raster'''
-
+        '''
+        Assign 0-255 to 0-5 output
+        Save final single band raster
+        '''
         # Read band 1 (out of 3, they're identical)
         with rasterio.open(tif_name) as tif:
             profile = tif.profile.copy()
             band1 = tif.read(1)
 
-        # Translate values
+            # Translate values
             band1[band1 == 0] = 0
             band1[band1 == 66] = 1
             band1[band1 == 129] = 2
@@ -302,20 +305,19 @@ class CMPredict(ulog.Loggable):
             band1[band1 == 255] = 4
             band1[band1 == 20] = 5
 
-
             profile.update({"count": 1})
 
             with rasterio.open(tif_name, 'w', **profile) as dst:
-               dst.write(band1, 1)
+                dst.write(band1, 1)
 
-
+        # Add a version tag
         tif_img = Image.open(tif_name)
-        tif_img.tag[305] = "CM_PREDICT V. {}; CM_VSM V. {}".format(__version__, self.cm_vsm_version)
+        tif_img.tag[305] = "CM_PREDICT {}; CM_VSM {}".format(__version__, str(self.cm_vsm_version).strip())
         tif_img.save(tif_name,tiffinfo=tif_img.tag)
 
         png_img = PngImageFile(png_name)
         metadata = PngInfo()
-        metadata.add_text("Software", "CM_PREDICT V. {}; CM_VSM V. {}".format(__version__, self.cm_vsm_version))
+        metadata.add_text("Software", "CM_PREDICT {}; CM_VSM {}".format(__version__, str(self.cm_vsm_version).strip()))
         png_img.save(png_name, pnginfo=metadata)
 
         # Save 1 channel in final output
@@ -339,7 +341,7 @@ def main():
                    help="Override the path to the tiling output directory.")
 
     args = p.parse_args()
-    ulog.init_logging(int(args.verbosity),"cm_predict","CMP",args.log_file_path)
+    ulog.init_logging(int(args.verbosity), "cm_predict", "CMP", args.log_file_path)
     cmf = CMPredict()
     cmf.load_config(args.path_config, args.product_name)
     if not args.no_sub_tiling:
