@@ -220,7 +220,7 @@ class CMPredict(ulog.Loggable):
                 image_list.append(pathlib.Path(os.path.join(self.prediction_product_path, subfolder, "prediction.png")))
 
         # Sort images by asc
-        image_list.sort(key = lambda var: get_img_entry_id(var))
+        image_list.sort(key=lambda var: get_img_entry_id(var))
 
         # Rotate each image in the list 270˚ counter clockwise
         rotateImages(270, image_list)
@@ -240,6 +240,7 @@ class CMPredict(ulog.Loggable):
         Image.MAX_IMAGE_PIXELS = None
 
         jp2 = []
+        # For correct georeference it is necessary to use 10m resolution band
         if self.product == "L2A":
             for root, dirs, files in os.walk(self.product_safe):
                 if(root.endswith("R10m")):
@@ -250,7 +251,7 @@ class CMPredict(ulog.Loggable):
             for root, dirs, files in os.walk(self.product_safe):
                 if(root.endswith("IMG_DATA")):
                     for file in files:
-                        if(file.endswith(".jp2")):
+                        if(file.endswith("B02.jp2")):
                             jp2.append(os.path.join(root, file))
 
         # Define a directory where to save a new file, resolution, etc.
@@ -260,8 +261,8 @@ class CMPredict(ulog.Loggable):
         index_name = self.product_name.rsplit('_', 1)[0].rsplit('_', 1)[-1]
 
         # Define the output names
-        png_name = big_image_product + "/" + self.product + "_" + index_name + "_" + date_name + '_KZ_10m.png'
-        tif_name = big_image_product + "/" + self.product + "_" + index_name + "_" + date_name + '_KZ_10m.tif'
+        png_name = os.path.join(big_image_product, self.product + "_" + index_name + "_" + date_name + '_KZ_10m.png')
+        tif_name = os.path.join(big_image_product, self.product + "_" + index_name + "_" + date_name + '_KZ_10m.tif')
 
         new_im.save(png_name, "PNG", quality=10980, optimize=True, progressive=True)
         new_im.save(tif_name, "TIFF", quality=10980, optimize=True, progressive=True)
@@ -273,7 +274,7 @@ class CMPredict(ulog.Loggable):
         png_mos = Image.open(png_name)
         tif_mos = Image.open(tif_name)
 
-        # Flip final mosaic horisontally
+        # Flip final mosaic horizontally
         png_flip = ImageOps.flip(png_mos)
         tif_flip = ImageOps.flip(tif_mos)
 
@@ -309,14 +310,14 @@ class CMPredict(ulog.Loggable):
             with rasterio.open(tif_name, 'w', **profile) as dst:
                 dst.write(band1, 1)
 
-        # Adding a version tag
+        # Add a version tag
         tif_img = Image.open(tif_name)
-        tif_img.tag[305] = "CM_PREDICT V. {}; CM_VSM V. {}".format(__version__, str(self.cm_vsm_version).strip())
+        tif_img.tag[305] = "CM_PREDICT {}; CM_VSM {}".format(__version__, str(self.cm_vsm_version).strip())
         tif_img.save(tif_name,tiffinfo=tif_img.tag)
 
         png_img = PngImageFile(png_name)
         metadata = PngInfo()
-        metadata.add_text("Software", "CM_PREDICT V. {}; CM_VSM V. {}".format(__version__, str(self.cm_vsm_version).strip()))
+        metadata.add_text("Software", "CM_PREDICT {}; CM_VSM {}".format(__version__, str(self.cm_vsm_version).strip()))
         png_img.save(png_name, pnginfo=metadata)
 
         # Save 1 channel in final output
