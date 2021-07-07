@@ -234,7 +234,13 @@ class CMPredict(ulog.Loggable):
         2) Sets final image size from col*width, rows*height
         3) Creates final image from all sub-tiles, and bounding box parameters are also set 
         """
-        new_im = image_grid_overlap(image_list, rows=23, cols=23, crop=16)
+        overlap_pix = self.overlapping*self.tile_size
+        if (overlap_pix % 2) != 0:
+            raise Exception ('Even number of pixels needed')
+
+        crop_coef = int(overlap_pix/2)
+        n_rows = math.ceil(10980 / (self.tile_size - crop_coef))
+        new_im = image_grid_overlap(image_list, rows=n_rows, cols=n_rows, crop=crop_coef)
 
         ImageFile.LOAD_TRUNCATED_IMAGES = True
         Image.MAX_IMAGE_PIXELS = None
@@ -279,8 +285,10 @@ class CMPredict(ulog.Loggable):
         tif_flip = ImageOps.flip(tif_mos)
 
         # Crop invalid pixels
-        png_crop = ImageOps.crop(png_flip, (0, 0, 60, 60))
-        tif_crop = ImageOps.crop(tif_flip, (0, 0, 60, 60))
+        f_tile_size = (self.tile_size - crop_coef*2) * n_rows
+        crop = f_tile_size - 10980
+        png_crop = ImageOps.crop(png_flip, (0, 0, crop, crop))
+        tif_crop = ImageOps.crop(tif_flip, (0, 0, crop, crop))
 
         # Save final files
         png_crop.save(png_name)
