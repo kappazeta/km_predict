@@ -14,11 +14,11 @@ import glob
 import pathlib
 from PIL import Image, ImageOps, ImageFile
 from PIL.PngImagePlugin import PngImageFile, PngInfo
-from math import ceil, floor
 import subprocess
 import shutil
 import rasterio
 from version import __version__
+import math
 
 
 
