@@ -112,6 +112,10 @@ class CMPredict(ulog.Loggable):
         self.config_from_dict(self.cfg, product_name)
         self.create_folders()
 
+        overlap_pix = self.overlapping * self.tile_size
+        if (overlap_pix % 2) != 0:
+            raise Exception('Even number of pixels needed')
+
     def get_model_by_name(self, name):
         if self.architecture in ARCH_MAP:
             self.model = ARCH_MAP[name]()
@@ -119,6 +123,7 @@ class CMPredict(ulog.Loggable):
         else:
             raise ValueError(("Unsupported architecture \"{}\"."
                               " Only the following architectures are supported: {}.").format(name, ARCH_MAP.keys()))
+
 
     def sub_tile(self, path_out):
         """
@@ -225,10 +230,7 @@ class CMPredict(ulog.Loggable):
         2) Sets final image size from col*width, rows*height
         3) Creates final image from all sub-tiles, bounding box parameters are also set 
         """
-        overlap_pix = self.overlapping * self.tile_size
-        if (overlap_pix % 2) != 0:
-            raise Exception('Even number of pixels needed')
-
+        
         crop_coef = int(overlap_pix / 2)
         n_rows = math.ceil(10980 / (self.tile_size - crop_coef))
         new_im = image_grid_overlap(image_list, rows=n_rows, cols=n_rows, crop=crop_coef)
