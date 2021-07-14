@@ -72,6 +72,11 @@ def image_grid_overlap(image_list, rows, cols, crop):
             img_crop = ImageOps.crop(img, border)
 
         # When all images in the list cropped, paste them in the new empty image
+        '''
+        For the first tile set the offset 0,0
+        As most of tiles are cropped 16 pixels from all 4 sides the offset should be shifted crop*2 on X and Y axis
+        Border tiles are cropped differently, so the offsets are shifted only for "crop" argument
+        '''
         if col_id == 0:
             off_x = 0
         elif col_id == 1:
