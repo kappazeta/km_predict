@@ -7,7 +7,7 @@ from util.normalization import set_normalization
 from util.save_prediction_masks import save_masks_contrast
 import os
 import numpy as np
-from util.raster_mosaic import get_img_entry_id, rotateImages, rotate_img, image_grid, image_grid_overlap
+from util.raster_mosaic import get_img_entry_id, image_grid, image_grid_overlap
 from util.rasterio_dep import proj_rasterio
 from util.gdal_dep import proj_gdal
 import glob
@@ -203,65 +203,55 @@ class CMPredict(ulog.Loggable):
         return
 
     def mosaic(self):
-        """
-        Make a mosaic output from obtained predictions
-        Next step: Take into account overlapping argument
-        """
-
+        # Creates /prediction/<product_name> directory
         big_image_product = os.path.join(self.big_image_folder, self.product_name)
         if not os.path.exists(big_image_product):
             os.mkdir(big_image_product)
 
         # Create list of prediction images
         image_list = []
-
         for subfolder in os.listdir(self.prediction_product_path):
             if os.path.isdir(os.path.join(self.prediction_product_path, subfolder)):
                 image_list.append(pathlib.Path(os.path.join(self.prediction_product_path, subfolder, "prediction.png")))
 
-        # Sort images by asc
+        # Sort images by asc (e.g. 0_0, 0_1, 0_2)
         image_list.sort(key=lambda var: get_img_entry_id(var))
 
-        # Rotate each image in the list 270˚ counter clockwise
-        rotateImages(270, image_list)
-
-        # Raster mosaic
         """
         A function that creates raster mosaic.
         As parameters it takes: list of images, number of tiles per row and number of columns
         
         1) Takes the sub-tile width and height from the first image in the list
         2) Sets final image size from col*width, rows*height
-        3) Creates final image from all sub-tiles, and bounding box parameters are also set 
+        3) Creates final image from all sub-tiles, bounding box parameters are also set 
         """
-        overlap_pix = self.overlapping*self.tile_size
+        overlap_pix = self.overlapping * self.tile_size
         if (overlap_pix % 2) != 0:
-            raise Exception ('Even number of pixels needed')
+            raise Exception('Even number of pixels needed')
 
-        crop_coef = int(overlap_pix/2)
+        crop_coef = int(overlap_pix / 2)
         n_rows = math.ceil(10980 / (self.tile_size - crop_coef))
         new_im = image_grid_overlap(image_list, rows=n_rows, cols=n_rows, crop=crop_coef)
 
         ImageFile.LOAD_TRUNCATED_IMAGES = True
         Image.MAX_IMAGE_PIXELS = None
 
-        jp2 = []
-        # For correct georeference it is necessary to use 10m resolution band
+        # For a correct georeference it is necessary to use 10m resolution band
+        jp2 = ''
         if self.product == "L2A":
             for root, dirs, files in os.walk(self.product_safe):
-                if(root.endswith("R10m")):
+                if (root.endswith("R10m")):
                     for file in files:
-                        if(file.endswith(".jp2")):
-                            jp2.append(os.path.join(root, file))
+                        if (file.endswith(".jp2")):
+                            jp2 = os.path.join(root, file)
         elif self.product == "L1C":
             for root, dirs, files in os.walk(self.product_safe):
-                if(root.endswith("IMG_DATA")):
+                if (root.endswith("IMG_DATA")):
                     for file in files:
-                        if(file.endswith("B02.jp2")):
-                            jp2.append(os.path.join(root, file))
+                        if (file.endswith("B02.jp2")):
+                            jp2 = os.path.join(root, file)
 
         # Define a directory where to save a new file, resolution, etc.
-
         # Get name and index from product name
         date_name = self.product_name.rsplit('_', 4)[0].rsplit('_', 1)[1]
         index_name = self.product_name.rsplit('_', 1)[0].rsplit('_', 1)[-1]
@@ -270,36 +260,26 @@ class CMPredict(ulog.Loggable):
         png_name = os.path.join(big_image_product, self.product + "_" + index_name + "_" + date_name + '_KZ_10m.png')
         tif_name = os.path.join(big_image_product, self.product + "_" + index_name + "_" + date_name + '_KZ_10m.tif')
 
-        new_im.save(png_name, "PNG", quality=10980, optimize=True, progressive=True)
-        new_im.save(tif_name, "TIFF", quality=10980, optimize=True, progressive=True)
-
-        # Rotate final mosaic for 90˚ counter clockwise
-        rotate_img(png_name, 90)
-        rotate_img(tif_name, 90)
-
-        png_mos = Image.open(png_name)
-        tif_mos = Image.open(tif_name)
-
-        # Flip final mosaic horizontally
-        png_flip = ImageOps.flip(png_mos)
-        tif_flip = ImageOps.flip(tif_mos)
-
-        # Crop invalid pixels
-        f_tile_size = (self.tile_size - crop_coef*2) * n_rows
+        # Crop the edges in the final image
+        f_tile_size = (self.tile_size - crop_coef * 2) * n_rows
         crop = f_tile_size - 10980
-        png_crop = ImageOps.crop(png_flip, (0, 0, crop, crop))
-        tif_crop = ImageOps.crop(tif_flip, (0, 0, crop, crop))
+        new_im_cropped = ImageOps.crop(new_im, (0, 0, crop, crop))
 
-        # Save final files
-        png_crop.save(png_name)
-        tif_crop.save(tif_name)
+        # Fill metadata for PNG format
+        metadata = PngInfo()
+        metadata.add_text("Software", "CM_PREDICT {}; CM_VSM {}".format(__version__, str(self.cm_vsm_version).strip()))
 
+        # Save with a recommended quality and metadata for png, tif is done further down
+        new_im_cropped.save(png_name, "PNG", quality=95, pnginfo=metadata)
+        new_im_cropped.save(tif_name, "TIFF", quality=95)
+
+        # Deal with tiff-related issues: projection, bands, tags
         proj_rasterio(jp2, tif_name)
-
         '''
         Assign 0-255 to 0-5 output
         Save final single band raster
         '''
+
         # Read band 1 (out of 3, they're identical)
         with rasterio.open(tif_name) as tif:
             profile = tif.profile.copy()
@@ -318,21 +298,11 @@ class CMPredict(ulog.Loggable):
             with rasterio.open(tif_name, 'w', **profile) as dst:
                 dst.write(band1, 1)
 
-        # Add a version tag
+        # Add a version tag for tiff image
         tif_img = Image.open(tif_name)
         tif_img.tag[305] = "CM_PREDICT {}; CM_VSM {}".format(__version__, str(self.cm_vsm_version).strip())
-        tif_img.save(tif_name,tiffinfo=tif_img.tag)
+        tif_img.save(tif_name, tiffinfo=tif_img.tag)
 
-        png_img = PngImageFile(png_name)
-        metadata = PngInfo()
-        metadata.add_text("Software", "CM_PREDICT {}; CM_VSM {}".format(__version__, str(self.cm_vsm_version).strip()))
-        png_img.save(png_name, pnginfo=metadata)
-
-        # Save 1 channel in final output
-
-        # Create big_image/product_name folder with os.mkdir
-        # Gather sub-tiles prediction from predict/product_name
-        # Create image mosaic (preferably write in a separate file under /util)
 
 def main():
     p = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter)
