@@ -234,7 +234,7 @@ class CMPredict(ulog.Loggable):
         3) Creates final image from all sub-tiles, bounding box parameters are also set 
         """
         overlap_pix = self.overlapping * self.tile_size
-        crop_coef = overlap_pix // 2
+        crop_coef = int(overlap_pix / 2)
         n_rows = math.ceil(10980 / (self.tile_size - crop_coef))
         new_im = image_grid_overlap(image_list, rows=n_rows, cols=n_rows, crop=crop_coef)
 
