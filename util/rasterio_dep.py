@@ -1,7 +1,7 @@
 import rasterio
 
-def proj_rasterio (image_list, tif_mosaic):
-    original_img = rasterio.open(image_list[0])
+def proj_rasterio (image, tif_mosaic):
+    original_img = rasterio.open(image)
 
     # Extract spatial metadata
     input_crs = original_img.crs
