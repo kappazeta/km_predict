@@ -208,7 +208,10 @@ class CMPredict(ulog.Loggable):
         return
 
     def mosaic(self):
-        # Creates /prediction/<product_name> directory
+        """
+        Make a mosaic output from obtained predictions with an overlapping argument
+        """
+        # Create /prediction/<product_name> directory
         big_image_product = os.path.join(self.big_image_folder, self.product_name)
         if not os.path.exists(big_image_product):
             os.mkdir(big_image_product)
@@ -231,7 +234,7 @@ class CMPredict(ulog.Loggable):
         3) Creates final image from all sub-tiles, bounding box parameters are also set 
         """
         overlap_pix = self.overlapping * self.tile_size
-        crop_coef = int(overlap_pix / 2)
+        crop_coef = overlap_pix // 2
         n_rows = math.ceil(10980 / (self.tile_size - crop_coef))
         new_im = image_grid_overlap(image_list, rows=n_rows, cols=n_rows, crop=crop_coef)
 
