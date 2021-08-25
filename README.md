@@ -1,5 +1,5 @@
 # cm_predict
-S2 full image prediction
+Sentinel-2 full image prediction that support Level-1C and Level-2A input products
 
 ## Dependencies
 The following system dependencies are needed:
