@@ -1,6 +1,8 @@
 # vim: set tabstop=8 softtabstop=0 expandtab shiftwidth=4 smarttab
 
-# Copyright 2020 KappaZeta Ltd.
+# Logging functionality.
+#
+# Copyright 2021 KappaZeta Ltd.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
