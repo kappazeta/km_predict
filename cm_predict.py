@@ -42,7 +42,7 @@ class CMPredict(ulog.Loggable):
         self.cfg = {
             "data_dir": ".SAFE",
             "product": "L2A",
-            "overlapping": True,
+            "overlapping": 0.0625,
             "tile_size": 512,
             "batch_size": 1
         }
@@ -54,7 +54,7 @@ class CMPredict(ulog.Loggable):
         self.big_image_folder = "prediction"
         self.weights = ""
         self.product = "L2A"
-        self.overlapping = True
+        self.overlapping = 0.0625
         self.tile_size = 512
         self.resampling_method = "sinc"
         self.features = ["AOT", "B01", "B02", "B03", "B04", "B05", "B06", "B08", "B8A", "B09", "B11", "B12", "WVP"]
@@ -74,6 +74,8 @@ class CMPredict(ulog.Loggable):
                        'num_classes': len(self.classes)
                        }
         self.cm_vsm_version = "-"
+        self.model = None
+        self.aoi_geom = None
 
     def create_folders(self):
         """
@@ -94,6 +96,7 @@ class CMPredict(ulog.Loggable):
         """
         Load configuration from a dictionary.
         :param d: Dictionary with the configuration tree.
+        :param product_name: Sentinel-2 product name.
         """
         self.cm_vsm_executable = d["cm_vsm_executable"]
         if product_name:
@@ -120,6 +123,9 @@ class CMPredict(ulog.Loggable):
 
         self.product_cvat = os.path.join(self.data_folder, (self.product_name + ".CVAT"))
 
+        if "aoi_geometry" in d:
+            self.aoi_geom = d["aoi_geometry"]
+
     def load_config(self, path, product_name):
         with open(path, "rt") as fi:
             self.cfg = json.load(fi)
@@ -138,11 +144,13 @@ class CMPredict(ulog.Loggable):
             raise ValueError(("Unsupported architecture \"{}\"."
                               " Only the following architectures are supported: {}.").format(name, ARCH_MAP.keys()))
 
-
-    def sub_tile(self, path_out):
+    def sub_tile(self, path_out, aoi_geom):
         """
         Execute cm-vsm sub-tiling process
         """
+        if aoi_geom is not None:
+            self.aoi_geom = aoi_geom
+
         cm_vsm_query = (
             "{path_bin} -j -1 -d {path_in} -b {bands} -S {tile_size} -f 0 -m {resampling} -o {overlap}"
         ).format(
@@ -156,8 +164,11 @@ class CMPredict(ulog.Loggable):
         if path_out and len(path_out) > 0:
             cm_vsm_query += " -O " + path_out
             self.product_cvat = path_out
+        # Area of interest geometry supplied?
+        if self.aoi_geom is not None:
+            cm_vsm_query += " -g \"" + self.aoi_geom + "\""
 
-        self.log.info("Performing CM-VSM:")
+        self.log.info("Performing CM-VSM: " + cm_vsm_query)
         with subprocess.Popen(cm_vsm_query, shell=True, stdout=subprocess.PIPE) as cm_vsm_process:
             for line in cm_vsm_process.stdout:
                 cm_vsm_output = line.decode("utf-8").rstrip("\n")
@@ -171,7 +182,6 @@ class CMPredict(ulog.Loggable):
         Run prediction for every sub-folder
         """
         # Initialize model
-
         self.get_model_by_name(self.architecture)
 
         # Propagate configuration parameters.
@@ -209,13 +219,13 @@ class CMPredict(ulog.Loggable):
                        }
         predict_generator = DataGenerator(tile_paths, **self.params)
         # sub_batch size 1 mean that we process data as whole, 2 dividing by half etc.
-        #set_normalization(predict_generator, tile_paths, 1)
+        # set_normalization(predict_generator, tile_paths, 1)
         # Run prediction
         predictions = self.model.predict(predict_generator)
-        #sen2cor = predict_generator.get_sen2cor()
-        #mask = (sen2cor[:, :, :, 3] == 1)
-        #prediction_union = predictions
-        #prediction_union[mask, 3] = sen2cor[mask, 3]
+        # sen2cor = predict_generator.get_sen2cor()
+        # mask = (sen2cor[:, :, :, 3] == 1)
+        # prediction_union = predictions
+        # prediction_union[mask, 3] = sen2cor[mask, 3]
         y_pred = np.argmax(predictions, axis=3)
         for i, prediction in enumerate(predictions):
             save_masks_contrast(tile_paths[i], prediction, y_pred[i], self.prediction_product_path, self.classes)
@@ -259,15 +269,15 @@ class CMPredict(ulog.Loggable):
         jp2 = ''
         if self.product == "L2A":
             for root, dirs, files in os.walk(self.product_safe):
-                if (root.endswith("R10m")):
+                if root.endswith("R10m"):
                     for file in files:
-                        if (file.endswith(".jp2")):
+                        if file.endswith(".jp2"):
                             jp2 = os.path.join(root, file)
         elif self.product == "L1C":
             for root, dirs, files in os.walk(self.product_safe):
-                if (root.endswith("IMG_DATA")):
+                if root.endswith("IMG_DATA"):
                     for file in files:
-                        if (file.endswith("B02.jp2")):
+                        if file.endswith("B02.jp2"):
                             jp2 = os.path.join(root, file)
 
         # Define a directory where to save a new file, resolution, etc.
@@ -327,24 +337,36 @@ def main():
     p = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter)
     p.add_argument("-c", "--config", action="store", dest="path_config", help="Path to the configuration file.")
     p.add_argument("-product", "--product", action="store", dest="product_name",
-                   help="Optional argument to overwrite product name in config.")
+                   help="Optional argument to override product name in config.")
     p.add_argument("-t", "--no-tiling", action="store_true", dest="no_sub_tiling", default=False,
                    help="Disable sub-tiling (the tile output directory has already been created).")
     p.add_argument("-v", "--verbosity", action="store", dest="verbosity", default=1,
                    help="Verbosity level for logging: 0-WARNING, 1-INFO, 2-DEBUG. Default is 1.")
-    p.add_argument("-l", "--log-file", action="store", dest="log_file_path", default=os.path.join(pathlib.Path(__file__).parent.absolute(), 'cm_predict.log'),
+    p.add_argument("-l", "--log-file", action="store", dest="log_file_path",
+                   default=os.path.join(pathlib.Path(__file__).parent.absolute(), 'cm_predict.log'),
                    help="Optional argument to specify a location for .log file.")
     p.add_argument("-O", "--tiling-output", action="store", dest="path_out_tiling",
                    help="Override the path to the tiling output directory.")
+    p.add_argument("-g", "--geom", action="store", dest="aoi_geom",
+                   help="Area of interest geometry as an EWKT string, for subtiling. For example: \"SRID=4326;Polygon "
+                        "((22.64992375534184887 50.27513740160615185, 23.60228115218003708 50.35482161490517683, "
+                        "23.54514084707420452 49.94024031630130622, 23.3153953947536472 50.21771699530808775, "
+                        "22.64992375534184887 50.27513740160615185))\"")
 
     args = p.parse_args()
-    ulog.init_logging(int(args.verbosity), "cm_predict", "CMP", args.log_file_path)
-    cmf = CMPredict()
-    cmf.load_config(args.path_config, args.product_name)
-    if not args.no_sub_tiling:
-        cmf.sub_tile(args.path_out_tiling)
-    cmf.predict()
-    cmf.mosaic()
+
+    log = ulog.init_logging(int(args.verbosity), "cm_predict", "CMP", args.log_file_path)
+
+    if args.path_config is None:
+        p.print_help()
+        log.error("Expecting the path to a configuration file")
+    else:
+        cmf = CMPredict()
+        cmf.load_config(args.path_config, args.product_name)
+        if not args.no_sub_tiling:
+            cmf.sub_tile(args.path_out_tiling, args.aoi_geom)
+        cmf.predict()
+        cmf.mosaic()
 
 
 if __name__ == "__main__":
