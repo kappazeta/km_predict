@@ -32,7 +32,8 @@ from PIL import Image, ImageOps, ImageFile
 from PIL.PngImagePlugin import PngInfo
 import subprocess
 import rasterio
-from version import __version__
+from version import __version__, min_cm_vsm_version
+from pkg_resources import parse_version
 import math
 
 
@@ -144,6 +145,17 @@ class CMPredict(ulog.Loggable):
             raise ValueError(("Unsupported architecture \"{}\"."
                               " Only the following architectures are supported: {}.").format(name, ARCH_MAP.keys()))
 
+    def get_cm_vsm_version(self):
+        """
+        Get the version of the cm-vsm utility.
+        """
+        with subprocess.Popen(self.cm_vsm_executable, shell=True, stdout=subprocess.PIPE) as cm_vsm_process:
+            for line in cm_vsm_process.stdout:
+                cm_vsm_output = line.decode("utf-8").rstrip("\n")
+                if "Version:" in cm_vsm_output:
+                    self.cm_vsm_version = cm_vsm_output.split(":")[1]
+        return self.cm_vsm_version
+
     def sub_tile(self, path_out, aoi_geom):
         """
         Execute cm-vsm sub-tiling process
@@ -173,8 +185,6 @@ class CMPredict(ulog.Loggable):
             for line in cm_vsm_process.stdout:
                 cm_vsm_output = line.decode("utf-8").rstrip("\n")
                 self.log.info(cm_vsm_output)
-                if "Version:" in cm_vsm_output:
-                    self.cm_vsm_version = cm_vsm_output.split(":")[1]
         self.log.info("Sub-tiling has been done!")
 
     def predict(self):
@@ -363,10 +373,16 @@ def main():
     else:
         cmf = CMPredict()
         cmf.load_config(args.path_config, args.product_name)
-        if not args.no_sub_tiling:
-            cmf.sub_tile(args.path_out_tiling, args.aoi_geom)
-        cmf.predict()
-        cmf.mosaic()
+        cm_vsm_version = cmf.get_cm_vsm_version()
+
+        # Ensure that we have a compatible version of cm-vsm.
+        if parse_version(cm_vsm_version) < parse_version(min_cm_vsm_version):
+            log.error("Please update cm-vsm to " + min_cm_vsm_version + " or later")
+        else:
+            if not args.no_sub_tiling:
+                cmf.sub_tile(args.path_out_tiling, args.aoi_geom)
+            cmf.predict()
+            cmf.mosaic()
 
 
 if __name__ == "__main__":
