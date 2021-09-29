@@ -149,7 +149,8 @@ class CMPredict(ulog.Loggable):
         """
         Get the version of the cm-vsm utility.
         """
-        with subprocess.Popen(self.cm_vsm_executable, shell=True, stdout=subprocess.PIPE) as cm_vsm_process:
+        q = self.cm_vsm_executable + " --version"
+        with subprocess.Popen(q, shell=True, stdout=subprocess.PIPE) as cm_vsm_process:
             for line in cm_vsm_process.stdout:
                 cm_vsm_output = line.decode("utf-8").rstrip("\n")
                 if "Version:" in cm_vsm_output:
@@ -180,7 +181,7 @@ class CMPredict(ulog.Loggable):
         if self.aoi_geom is not None:
             cm_vsm_query += " -g \"" + self.aoi_geom + "\""
 
-        self.log.info("Performing CM-VSM: " + cm_vsm_query)
+        self.log.info("Splitting with CM-VSM: " + cm_vsm_query)
         with subprocess.Popen(cm_vsm_query, shell=True, stdout=subprocess.PIPE) as cm_vsm_process:
             for line in cm_vsm_process.stdout:
                 cm_vsm_output = line.decode("utf-8").rstrip("\n")
