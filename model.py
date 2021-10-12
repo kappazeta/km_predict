@@ -25,6 +25,11 @@ from sklearn.metrics import confusion_matrix, multilabel_confusion_matrix
 
 
 class CMModel(log.Loggable):
+    SUPPORTED_ONNX_BACKENDS = [
+        "openvino_tensorrt_cpu",
+        "enot_lite"
+    ]
+
     """
     A generic model class to be subclassed by specific model architecture classes.
     """
@@ -49,6 +54,7 @@ class CMModel(log.Loggable):
         self.monitored_metric = self.METRICS_SET["iou"]
 
         self.onnx_model = False
+        self.onnx_backend = "openvino_tensorrt_cpu"
 
         self.path_checkpoint = ''
         self.path_weights = ''
@@ -132,6 +138,17 @@ class CMModel(log.Loggable):
         :param num_epochs: Number of epochs.
         """
         self.num_epochs = num_epochs
+
+    def set_onnx_backend(self, backend):
+        """
+        Specify an ONNX backend to use.
+        :param backend: Name of the backend. See CMModel.SUPPORTED_ONNX_BACKENDS for a list of supported values.
+        """
+        if backend in CMModel.SUPPORTED_ONNX_BACKENDS:
+            self.onnx_model = True
+            self.onnx_backend = backend
+            return True
+        return False
 
     @staticmethod
     def custom_f1(y_true, y_pred):
@@ -223,7 +240,24 @@ class CMModel(log.Loggable):
         if self.onnx_model:
             import onnxruntime as rt
 
-            session = rt.InferenceSession(self.path_weights)
+            if self.onnx_backend == 'enot_lite':
+                from enot_lite import backend
+
+                session_options = rt.SessionOptions()
+                session_options.graph_optimization_level = rt.GraphOptimizationLevel.ORT_DISABLE_ALL
+                session_options.enable_profiling = True
+
+                session = backend.OrtTensorrtFloatBackend(self.path_weights, sess_opt=session_options)
+            elif self.onnx_backend == 'openvino_tensorrt_cpu':
+                session_options = rt.SessionOptions()
+                session_options.enable_profiling = True
+
+                session = rt.InferenceSession(self.path_weights, session_options)
+
+                device = 'CPU_FP32'
+                session.set_providers(['OpenVINOExecutionProvider'], [{'device_type': device}])
+            else:
+                session = rt.InferenceSession(self.path_weights)
 
             model_input_layer = self.model.input_names[0]
             model_output_layer = self.model.output_names
@@ -242,6 +276,8 @@ class CMModel(log.Loggable):
                 y = session.run(model_output_layer, d_input)[0]
                 preds[offset:(offset + self.batch_size), :, :, :] = y
                 offset += self.batch_size
+
+            self.log.info("ONNX profiling info:\n{}".format(session.end_profiling()))
         else:
             preds = self.model.predict_generator(dataset_pred)
 

@@ -113,6 +113,8 @@ class CMPredict(ulog.Loggable):
             self.features = ["B01", "B02", "B03", "B04", "B05", "B06", "B07", "B08", "B8A", "B09", "B10", "B11", "B12"]
         if "model_weights" in d.keys():
             self.weights = d["model_weights"]
+        if "onnx_backend" in d.keys():
+            self.onnx_backend = d["onnx_backend"]
         self.product = d["level_product"]
         self.overlapping = d["overlapping"]
         self.tile_size = d["tile_size"]
@@ -200,6 +202,7 @@ class CMPredict(ulog.Loggable):
 
         # Propagate configuration parameters.
         self.model.set_batch_size(self.batch_size)
+        self.model.set_onnx_backend(self.onnx_backend)
 
         # Construct and compile the model.
         self.model.construct(self.tile_size, self.tile_size, len(self.features), len(self.classes))
