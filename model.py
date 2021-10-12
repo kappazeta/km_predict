@@ -48,7 +48,10 @@ class CMModel(log.Loggable):
                             "iou": tf.keras.metrics.MeanIoU(num_classes=6), 'f1': self.custom_f1}
         self.monitored_metric = self.METRICS_SET["iou"]
 
+        self.onnx_model = False
+
         self.path_checkpoint = ''
+        self.path_weights = ''
 
     def construct(self, width, height, num_channels, num_categories, pretrained_weights=False):
         """
@@ -80,7 +83,18 @@ class CMModel(log.Loggable):
         Load model weights from a file.
         :param path: Path to the model weights file.
         """
-        self.model.load_weights(path)
+        self.path_weights = path
+        if path.endswith('onnx'):
+            self.onnx_model = True
+        else:
+            self.model.load_weights(path)
+
+    def save(self, path):
+        """
+        Save the model architecture and weights, in a "saved model" format.
+        :param path: Path to the directory to store the subdirectory with the saved model.
+        """
+        tf.saved_model.save(self.model, path)
 
     def set_learning_rate(self, lr):
         """
@@ -205,7 +219,31 @@ class CMModel(log.Loggable):
         :param dataset_pred: Dataset (numpy ndarray or Tensorflow Dataset) to predict on.
         :return: Numpy array of class probabilities [[p_class1, p_class2, ...], [p_class1, p_class2, ...]].
         """
-        preds = self.model.predict_generator(dataset_pred)
+        # TODO:: Store just a single batch in RAM, at a time.
+        if self.onnx_model:
+            import onnxruntime as rt
+
+            session = rt.InferenceSession(self.path_weights)
+
+            model_input_layer = self.model.input_names[0]
+            model_output_layer = self.model.output_names
+
+            # Pre-allocate the output array.
+            num_batches = len(dataset_pred)
+            output_shape = self.model.output_shape
+            preds = np.zeros(
+                (self.batch_size * num_batches, output_shape[1], output_shape[2], output_shape[3]),
+                dtype='float32'
+            )
+            # Predict each batch, storing the output.
+            offset = 0
+            for x in dataset_pred:
+                d_input = {model_input_layer: x.astype('float32')}
+                y = session.run(model_output_layer, d_input)[0]
+                preds[offset:(offset + self.batch_size), :, :, :] = y
+                offset += self.batch_size
+        else:
+            preds = self.model.predict_generator(dataset_pred)
 
         return preds
 

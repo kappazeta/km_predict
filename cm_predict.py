@@ -16,6 +16,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import time
 import json
 import argparse
 from util import log as ulog
@@ -110,6 +111,8 @@ class CMPredict(ulog.Loggable):
         elif d["level_product"] == "L1C":
             self.weights = "l1c_ft_b7__007-0.10.hdf5"
             self.features = ["B01", "B02", "B03", "B04", "B05", "B06", "B07", "B08", "B8A", "B09", "B10", "B11", "B12"]
+        if "model_weights" in d.keys():
+            self.weights = d["model_weights"]
         self.product = d["level_product"]
         self.overlapping = d["overlapping"]
         self.tile_size = d["tile_size"]
@@ -204,6 +207,7 @@ class CMPredict(ulog.Loggable):
 
         # Load model weights.
         self.model.load_weights(self.weights_path)
+        # self.model.save(self.weights_path + ".saved_model")
 
         # Go through all folders
         date_match = self.product_name.rsplit('_', 1)[-1]
@@ -231,6 +235,7 @@ class CMPredict(ulog.Loggable):
         predict_generator = DataGenerator(tile_paths, **self.params)
         # sub_batch size 1 mean that we process data as whole, 2 dividing by half etc.
         # set_normalization(predict_generator, tile_paths, 1)
+        # TODO:: Store just a single batch in RAM, at a time.
         # Run prediction
         predictions = self.model.predict(predict_generator)
         # sen2cor = predict_generator.get_sen2cor()
@@ -368,6 +373,8 @@ def main():
 
     log = ulog.init_logging(int(args.verbosity), "cm_predict", "CMP", args.log_file_path)
 
+    start_time = time.time()
+
     if args.path_config is None:
         p.print_help()
         log.error("Expecting the path to a configuration file")
@@ -382,8 +389,17 @@ def main():
         else:
             if not args.no_sub_tiling:
                 cmf.sub_tile(args.path_out_tiling, args.aoi_geom)
+            log.info("Finished subtiling in {} s".format(time.time() - start_time))
+
+            predict_start_time = time.time()
             cmf.predict()
+            log.info("Finished prediction in {} s".format(time.time() - predict_start_time))
+
+            mosaic_start_time = time.time()
             cmf.mosaic()
+            log.info("Finished mosaicking in {} s".format(time.time() - mosaic_start_time))
+
+    log.info("Total run time: {} s".format(time.time() - start_time))
 
 
 if __name__ == "__main__":

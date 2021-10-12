@@ -35,6 +35,7 @@ class Unet(CMModel):
         :param height: Height of a single sample (must be an odd number).
         :param num_channels: Number of features used.
         :param num_categories: Number of output classes.
+        :pretrained_weights: Initialize the model with pre-trained weights (True) or not (False).
         """
         # For symmetrical neighbourhood, width and height must be odd numbers.
         self.input_shape = (width, height, num_channels)
@@ -92,8 +93,6 @@ class Unet(CMModel):
             conv10 = tf.keras.layers.Conv2D(num_categories, (1, 1), activation='softmax')(conv9)
 
             self.model = tf.keras.Model(inputs, conv10)
-
-            #self.model.summary()
 
             if pretrained_weights:
                 self.model.load_weights(pretrained_weights)
