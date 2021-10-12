@@ -1,0 +1,21 @@
+name: cm_predict_onnx_nvidia
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python<3.9
+  - pip
+  - conda-forge::pandas
+  - conda-forge::scikit-learn
+  - conda-forge::scikit-image
+  - conda-forge::rasterio
+  - netcdf4
+  - matplotlib
+  - pytest
+  - cudnn
+  - cudatoolkit
+  - tensorflow-gpu
+  - keras
+  - pip:
+    - tf2onnx
+    - onnxruntime-gpu
