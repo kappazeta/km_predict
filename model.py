@@ -27,7 +27,9 @@ from sklearn.metrics import confusion_matrix, multilabel_confusion_matrix
 class CMModel(log.Loggable):
     SUPPORTED_ONNX_BACKENDS = [
         "openvino_tensorrt_cpu",
-        "enot_lite"
+        "openvino_tensorrt_gpu",
+        "enot_lite",
+        "cuda"
     ]
 
     """
@@ -248,13 +250,17 @@ class CMModel(log.Loggable):
                 session_options.enable_profiling = True
 
                 session = backend.OrtTensorrtFloatBackend(self.path_weights, sess_opt=session_options)
-            elif self.onnx_backend == 'openvino_tensorrt_cpu':
+            elif self.onnx_backend.startswith('openvino_tensorrt_'):
                 session_options = rt.SessionOptions()
                 session_options.enable_profiling = True
 
                 session = rt.InferenceSession(self.path_weights, session_options)
 
-                device = 'CPU_FP32'
+                if self.onnx_backend == 'openvino_tensorrt_gpu':
+                    device = 'GPU_FP32'
+                else:
+                    device = 'CPU_FP32'
+
                 session.set_providers(['OpenVINOExecutionProvider'], [{'device_type': device}])
             else:
                 session = rt.InferenceSession(self.path_weights)

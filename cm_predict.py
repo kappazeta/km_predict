@@ -78,6 +78,7 @@ class CMPredict(ulog.Loggable):
         self.cm_vsm_version = "-"
         self.model = None
         self.aoi_geom = None
+        self.onnx_backend = None
 
     def create_folders(self):
         """
