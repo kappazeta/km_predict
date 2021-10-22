@@ -52,6 +52,7 @@ class DataGenerator(Sequence):
             self.features = features
         self.tile_size = tile_size
         self.num_classes = num_classes
+        self.indexes = []
         self.shuffle = shuffle
         self.on_epoch_end()
 
@@ -68,9 +69,9 @@ class DataGenerator(Sequence):
         batch = [self.list_indices[k] for k in indexes]
 
         # Generate data
-        X = self.__data_generation(batch)
+        x = self.__data_generation(batch)
 
-        return X
+        return x
 
     def set_std(self, stds):
         self.stds = stds
@@ -87,21 +88,21 @@ class DataGenerator(Sequence):
     def on_epoch_end(self):
         """Updates indexes after each epoch"""
         self.indexes = np.arange(len(self.list_indices))
-        if self.shuffle == True:
+        if self.shuffle:
             np.random.shuffle(self.indexes)
 
     def __data_generation(self, list_indices_temp):
         """Generates data containing batch_size samples"""  # X : (n_samples, *dim, n_channels)
-        X = np.empty((self.batch_size, self.tile_size, self.tile_size, len(self.features)))
+        x = np.empty((self.batch_size, self.tile_size, self.tile_size, len(self.features)))
         y = np.empty((self.batch_size, self.tile_size, self.tile_size, self.num_classes), dtype=int)
         # Initialization
         for i, file in enumerate(list_indices_temp):
+            print(file)
             if os.path.isfile(file) and file.endswith('.nc'):
                 with nc.Dataset(file, 'r') as root:
                     if self.normalization == "minmax":
                         data_bands = [(np.asarray(root[f]) - self.min_v[i]) / (self.max_v[i] - self.min_v[i]) for i, f
-                                      in
-                                      enumerate(self.features)]
+                                      in enumerate(self.features)]
                     else:
                         data_bands = [(np.asarray(root[f]) - self.means[i]) / (self.stds[i]) for i, f
                                       in enumerate(self.features)]
@@ -109,13 +110,13 @@ class DataGenerator(Sequence):
                     data_bands = np.stack(data_bands)
                     data_bands = np.rollaxis(data_bands, 0, 3)
                     # data_bands = data_bands.reshape((self.dim[0], self.dim[1], len(self.features)))
-                    X[i,] = data_bands
+                    x[i, ] = data_bands
 
-        return X
+        return x
 
     def get_normal_par(self, list_indices_temp):
-        "Generates data containing batch_size samples"  # X : (n_samples, *dim, n_channels)
-        X = np.empty((len(list_indices_temp), self.tile_size, self.tile_size, len(self.features)))
+        """Generates data containing batch_size samples"""  # X : (n_samples, *dim, n_channels)
+        x = np.empty((len(list_indices_temp), self.tile_size, self.tile_size, len(self.features)))
         # Initialization
         for i, file in enumerate(list_indices_temp):
             if os.path.isfile(file) and file.endswith('.nc'):
@@ -124,21 +125,21 @@ class DataGenerator(Sequence):
                     data_bands = np.stack(data_bands)
                     data_bands = np.rollaxis(data_bands, 0, 3)
                     # data_bands = data_bands.reshape((self.dim[0], self.dim[1], len(self.features)))
-                    X[i,] = data_bands
+                    x[i, ] = data_bands
 
         stds_list = []
         means_list = []
         unique_list = []
         min_list = []
         max_list = []
-        X_reshaped = np.reshape(X, (len(list_indices_temp) * self.tile_size * self.tile_size, len(self.features)))
+        x_reshaped = np.reshape(x, (len(list_indices_temp) * self.tile_size * self.tile_size, len(self.features)))
         for j, class_curr in enumerate(self.features):
             # print(class_curr)
-            std_array = np.std(X_reshaped[:, j])
-            mean_array = np.mean(X_reshaped[:, j])
-            unique = np.unique(X_reshaped[:, j])
-            min_ar = np.min(X_reshaped[:, j])
-            max_ar = np.max(X_reshaped[:, j])
+            std_array = np.std(x_reshaped[:, j])
+            mean_array = np.mean(x_reshaped[:, j])
+            unique = np.unique(x_reshaped[:, j])
+            min_ar = np.min(x_reshaped[:, j])
+            max_ar = np.max(x_reshaped[:, j])
             stds_list.append(std_array)
             means_list.append(mean_array)
             unique_list.append(unique)

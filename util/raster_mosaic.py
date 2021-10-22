@@ -20,12 +20,18 @@ from PIL import Image, ImageOps
 import re
 
 
+def extract_tile_coords(image_path):
+    m = re.search(r"tile_(\d+)_(\d+)", str(image_path))
+    if m:
+        return int(m.group(1)), int(m.group(2))
+    return None, None
+
+
 # Create a list for images and take them in the right order
 def get_img_entry_id(var):
-    m = re.search(r'tile_(\d+)_(\d+)', str(var))
-    if m:
-        key = int(m.group(1)) * 1000 + int(m.group(2))
-        return key
+    x, y = extract_tile_coords(var)
+    if x is not None and y is not None:
+        return x * 1000 + y
     return 0
 
 
@@ -33,51 +39,50 @@ def image_grid(image_list, rows, cols):
     w, h = Image.open(image_list[0]).size
 
     new_img = Image.new('RGB', size=(cols * w, rows * h))
-    grid_w, grid_h = new_img.size
 
-    for i, img in enumerate(image_list):
+    for img in image_list:
+        # Get row and column number
+        col_id, row_id = extract_tile_coords(img)
+
         img = Image.open(img)
 
-        new_img.paste(img, box=(i % cols * w, i // cols * h))
+        new_img.paste(img, box=(row_id * w, col_id * h))
     return new_img
 
 
 def image_grid_overlap(image_list, rows, cols, crop):
     w, h = Image.open(image_list[0]).size
     new_img = Image.new('RGB', size=(cols * (w - crop * 2), rows * (h - crop * 2)))
-    grid_w, grid_h = new_img.size
-
-    off_x = 0
-    off_y = 0
 
     # Creates new empty image with taking the size from sub-tile from the list
-    for i, img in enumerate(image_list):
+    for img in image_list:
+        # Get row and column number
+        col_id, row_id = extract_tile_coords(img)
+        if col_id is None or row_id is None:
+            continue
+
         img = Image.open(img)
 
         border = (crop, crop, crop, crop)  # left, up, right, bottom
 
-        # Get row and column number
-        col_id = i // cols
-        row_id = i % cols
-
         # Set conditions to crop images differently.
         # Corners should be cropped first, then the borders
-        if (row_id == 0 and col_id == 0):
+        if row_id == 0 and col_id == 0:
             img_crop = ImageOps.crop(img, (0, 0, crop, crop))  # upper left corner
 
-        elif (i % cols == 0 and row_id == (rows - 1)):
+        elif col_id == 0 and row_id == (rows - 1):
             img_crop = ImageOps.crop(img, (0, crop, crop, 0))  # lower left corner
 
-        elif (row_id == 0 and col_id == (cols - 1)):
+        elif row_id == 0 and col_id == (cols - 1):
             img_crop = ImageOps.crop(img, (crop, 0, 0, crop))  # upper right corner
 
-        elif (row_id == (rows - 1) and col_id == (cols - 1)):
+        elif row_id == (rows - 1) and col_id == (cols - 1):
             img_crop = ImageOps.crop(img, (crop, crop, 0, 0))  # lower right corner
 
         elif row_id == 0:
             img_crop = ImageOps.crop(img, (crop, 0, crop, crop))  # 1st row
 
-        elif (col_id == 0):
+        elif col_id == 0:
             img_crop = ImageOps.crop(img, (0, crop, crop, crop))  # 1st column
 
         elif row_id == (rows - 1):
@@ -114,4 +119,3 @@ def image_grid_overlap(image_list, rows, cols, crop):
         # Image is built column by column, vertically, starting from (0.0) left-upper corner
         new_img.paste(img_crop, box=box)
     return new_img
-

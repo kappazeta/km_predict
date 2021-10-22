@@ -16,10 +16,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-__version__ = '1.0.3'
+__version__ = '1.0.4'
+min_cm_vsm_version = '0.2.6'
 
-# 1.0.3 - Mosaic performance optimization
-# 1.0.2 - Mosaic function is unified
-# 1.0.1 - L1C support, new weights files
-# 1.0.0 - cm_predict version implementation, logger implementation, image rotating  on re-creation fix
-
+# 1.0.4 - Support processing withing polygon-limited area of interest. Sub-tiles no longer flipped.
+# 1.0.3 - Mosaic performance optimization.
+# 1.0.2 - Mosaic function is unified.
+# 1.0.1 - L1C support, new weights files.
+# 1.0.0 - cm_predict version implementation, logger implementation, image rotating  on re-creation fix.
