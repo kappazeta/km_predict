@@ -29,6 +29,7 @@ class CMModel(log.Loggable):
         "openvino_tensorrt_cpu",
         "openvino_tensorrt_gpu",
         "enot_lite",
+        "enot_lite_cpu",
         "cuda"
     ]
 
@@ -57,6 +58,7 @@ class CMModel(log.Loggable):
 
         self.onnx_model = False
         self.onnx_backend = "openvino_tensorrt_cpu"
+        self.enable_profiling = False
 
         self.path_checkpoint = ''
         self.path_weights = ''
@@ -152,6 +154,13 @@ class CMModel(log.Loggable):
             return True
         return False
 
+    def set_profiling(self, enabled):
+        """
+        Enable or disable profiling.
+        :param enabled: True to enable, False to disable profiling.
+        """
+        self.enable_profiling = enabled
+
     @staticmethod
     def custom_f1(y_true, y_pred):
         def recall_m(y_true, y_pred):
@@ -242,17 +251,16 @@ class CMModel(log.Loggable):
         if self.onnx_model:
             import onnxruntime as rt
 
-            if self.onnx_backend == 'enot_lite':
-                from enot_lite import backend
-
-                session_options = rt.SessionOptions()
-                session_options.graph_optimization_level = rt.GraphOptimizationLevel.ORT_DISABLE_ALL
-                session_options.enable_profiling = True
-
-                session = backend.OrtTensorrtFloatBackend(self.path_weights, sess_opt=session_options)
+            if self.onnx_backend.startswith('enot_lite'):
+                # Enot AI expects input data already during the creation of the backend.
+                if self.onnx_backend == 'enot_lite_cpu':
+                    from enot_lite import backend
+                    session = backend.OrtCpuBackend(self.path_weights)
+                else:
+                    session = None
             elif self.onnx_backend.startswith('openvino_tensorrt_'):
                 session_options = rt.SessionOptions()
-                session_options.enable_profiling = True
+                session_options.enable_profiling = self.enable_profiling
 
                 session = rt.InferenceSession(self.path_weights, session_options)
 
@@ -279,11 +287,17 @@ class CMModel(log.Loggable):
             offset = 0
             for x in dataset_pred:
                 d_input = {model_input_layer: x.astype('float32')}
+
+                if session is None and self.onnx_backend == 'enot_lite':
+                    from enot_lite import backend
+                    session = backend.OrtTensorrtFloatBackend(self.path_weights, input_example=d_input)
+
                 y = session.run(model_output_layer, d_input)[0]
                 preds[offset:(offset + self.batch_size), :, :, :] = y
                 offset += self.batch_size
 
-            self.log.info("ONNX profiling info:\n{}".format(session.end_profiling()))
+            if self.enable_profiling:
+                self.log.info("ONNX profiling info:\n{}".format(session.end_profiling()))
         else:
             preds = self.model.predict_generator(dataset_pred)
 
