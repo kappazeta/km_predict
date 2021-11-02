@@ -5,6 +5,7 @@ Sentinel-2 full image prediction that support Level-1C and Level-2A input produc
 The following system dependencies are needed:
 * conda 4.9 or later
 * python 3.6 or later
+* cm_vsm dependencies
 
 ## Setup
 1. Create a conda environment.
@@ -13,13 +14,16 @@ The following system dependencies are needed:
 
 2. Copy `config/config_example.json` and adapt it to your needs.
 3. In order to run sub-tiling procedure cm_vsm should be installed (https://github.com/kappazeta/cm-vsm).
+4. Make sure that your `GDAL_DATA` environment variable has been set, according to your GDAL version instead of the placeholder `YOUR_GDAL_VERSION` below:
+
+        GDAL_DATA=/usr/share/gdal/YOUR_GDAL_VERSION
+
 
 ## Input data
 In the root of repository create a ```/data``` folder and place .SAFE product to it 
 
 ## Usage
-
-Cloudmask generating can be run as follows:
+Cloudmask inference can be run as follows:
 
 ```
 conda activate cm_predict
