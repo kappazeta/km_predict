@@ -149,8 +149,8 @@ class CMPredict(ulog.Loggable):
         """
         Get the version of the cm-vsm utility.
         """
-        q = self.cm_vsm_executable + " --version"
-        with subprocess.Popen(q, shell=True, stdout=subprocess.PIPE) as cm_vsm_process:
+        q = [self.cm_vsm_executable, "--version"]
+        with subprocess.Popen(q, stdout=subprocess.PIPE) as cm_vsm_process:
             for line in cm_vsm_process.stdout:
                 cm_vsm_output = line.decode("utf-8").rstrip("\n")
                 if "Version:" in cm_vsm_output:
@@ -164,25 +164,25 @@ class CMPredict(ulog.Loggable):
         if aoi_geom is not None:
             self.aoi_geom = aoi_geom
 
-        cm_vsm_query = (
-            "{path_bin} -j -1 -d {path_in} -b {bands} -S {tile_size} -f 0 -m {resampling} -o {overlap}"
-        ).format(
-            path_bin=self.cm_vsm_executable,
-            path_in=os.path.abspath(self.product_safe),
-            bands=",".join(self.features),
-            tile_size=self.tile_size,
-            resampling=self.resampling_method,
-            overlap=self.overlapping
-        )
+        cm_vsm_query = [
+            self.cm_vsm_executable,
+            "-j", "-1",
+            "-d", os.path.abspath(self.product_safe),
+            "-b", ",".join(self.features),
+            "-S", str(self.tile_size),
+            "-f", "0",
+            "-m", self.resampling_method,
+            "-o", str(self.overlapping)
+        ]
         if path_out and len(path_out) > 0:
-            cm_vsm_query += " -O " + path_out
+            cm_vsm_query += ["-O", path_out]
             self.product_cvat = path_out
         # Area of interest geometry supplied?
         if self.aoi_geom is not None:
-            cm_vsm_query += " -g \"" + self.aoi_geom + "\""
+            cm_vsm_query += ["-g", self.aoi_geom]
 
-        self.log.info("Splitting with CM-VSM: " + cm_vsm_query)
-        with subprocess.Popen(cm_vsm_query, shell=True, stdout=subprocess.PIPE) as cm_vsm_process:
+        self.log.info("Splitting with CM-VSM: {}".format(cm_vsm_query))
+        with subprocess.Popen(cm_vsm_query, stdout=subprocess.PIPE) as cm_vsm_process:
             for line in cm_vsm_process.stdout:
                 cm_vsm_output = line.decode("utf-8").rstrip("\n")
                 self.log.info(cm_vsm_output)
