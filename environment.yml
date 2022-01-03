@@ -1,16 +1,15 @@
 name: cm_predict
 channels:
   - conda-forge
-  - defaults
+  - main
 dependencies:
   - python>=3.5
   - pip
-  - conda-forge::pandas
-  - conda-forge::scikit-learn
-  - conda-forge::scikit-image
-  - conda-forge::rasterio
+  - pandas>=1.3.0
+  - scikit-learn
+  - scikit-image
+  - rasterio
   - netcdf4
-  - matplotlib
+  - matplotlib>=3.5.0
   - pytest
-  - tensorflow-gpu
-  - keras
+  - tensorflow-gpu>=2.0.0
