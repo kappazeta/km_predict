@@ -16,9 +16,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-__version__ = '1.0.4'
+__version__ = '1.0.5'
 min_cm_vsm_version = '0.2.6'
 
+# 1.0.5 - Calls to cm_vsm now less dependent on platform. Switch from miniconda to micromamba.
 # 1.0.4 - Support processing withing polygon-limited area of interest. Sub-tiles no longer flipped.
 # 1.0.3 - Mosaic performance optimization.
 # 1.0.2 - Mosaic function is unified.
