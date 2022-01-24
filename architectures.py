@@ -100,7 +100,78 @@ class Unet(CMModel):
 
             return self.model
 
+class DeepLab(CMModel):
+    """
+    DeepLab v3
+    """
+
+    def __init__(self):
+        super(DeepLab, self).__init__("CMP.M")
+
+    def construct(self, width, height, num_channels, num_categories, pretrained_weights=False):
+        """
+        Construct the model.
+        :param width: Width of a single sample (must be an odd number).
+        :param height: Height of a single sample (must be an odd number).
+        :param num_channels: Number of features used.
+        :param num_categories: Number of output classes.
+        """
+        # For symmetrical neighbourhood, width and height must be odd numbers.
+        self.input_shape = (width,height, num_channels)
+        self.output_shape = (num_categories,)
+        n_filters = 64
+
+        with tf.name_scope('Model'):
+            inputs = tf.keras.layers.Input(self.input_shape, name='input')
+            resnet50 = tf.keras.applications.ResNet50(include_top = False, input_tensor = inputs, weights = None)
+            x = resnet50.get_layer('conv4_block6_2_relu').output
+            x = self.ASPP(x)
+
+            input_a = tf.keras.layers.UpSampling2D(size = (width // 4 // x.shape[1], height // 4 // x.shape[2]),
+            interpolation = 'bilinear')(x)
+            input_b = resnet50.get_layer('conv2_block3_2_relu').output
+            input_b = self.convolutional_block(input_b, num_filters = 48, kernel_size = 1)
+            
+            x = tf.keras.layers.Concatenate(axis = -1)([input_a, input_b])
+            x = self.convolutional_block(x)
+            x = self.convolutional_block(x)
+            x = tf.keras.layers.UpSampling2D(size = (width // x.shape[1], height // x.shape[2]), interpolation =
+            'bilinear')(x)
+            outputs = tf.keras.layers.Conv2D(num_categories, activation = 'softmax', kernel_size = (1,1), padding = 'same')(x)
+
+            self.model = tf.keras.Model(inputs, outputs)
+            if pretrained_weights:
+                self.model.load_weights(pretrained_weights)
+            
+            return self.model
+
+    def convolutional_block(self, input_, num_filters = 256, kernel_size = 3, dilation_rate = 1, padding = 'same',
+    use_bias = False):
+        conv_x = tf.keras.layers.Conv2D(num_filters, kernel_size = kernel_size, dilation_rate = dilation_rate, padding =
+        padding, use_bias = use_bias, kernel_initializer = 'he_normal')(input_)
+        x = tf.keras.layers.BatchNormalization()(conv_x)
+        return tf.nn.relu(x)
+
+    def ASPP(self, input_):
+        dims = input_.shape
+        x = tf.keras.layers.AveragePooling2D(pool_size = (dims[-3], dims[-2]))(input_)
+        x = self.convolutional_block(x, kernel_size = 1, use_bias = True)
+        out_pool = tf.keras.layers.UpSampling2D(size = (dims[-3] // x.shape[1], dims[-2] // x.shape[2]), interpolation =
+        'bilinear')(x)
+
+        out_1 = self.convolutional_block(input_, kernel_size = 1, dilation_rate = 1)
+        out_6 = self.convolutional_block(input_, kernel_size = 3, dilation_rate = 6)
+        out_12 = self.convolutional_block(input_, kernel_size = 3, dilation_rate = 12)
+        out_18 = self.convolutional_block(input_, kernel_size = 3, dilation_rate = 18)
+        
+        x = tf.keras.layers.Concatenate(axis = -1)([out_pool, out_1, out_6, out_12, out_18])
+        output = self.convolutional_block(x, kernel_size = 1)
+
+        return output
+
+
 
 ARCH_MAP = {
-    "Unet": Unet
+    "Unet": Unet,
+    "DeepLab" : DeepLab,
 }
