@@ -3,6 +3,7 @@ Sentinel-2 full image prediction that support Level-1C and Level-2A input produc
 
 ## Dependencies
 The following system dependencies are needed:
+* git-lfs
 * micromamba 0.18 or later (https://github.com/mamba-org/mamba)
 * python 3.6 or later
 * cm_vsm dependencies
@@ -10,13 +11,17 @@ The following system dependencies are needed:
 Due to the long environment solve times with Miniconda, we have switched to Micromamba. If you're still using Conda, Miniconda or similar, simply substitute `micromamba` with `conda` in the relevant commands below.
 
 ## Setup
-1. Create a micromamba environment.
+1. Fetch model weights via Git LFS.
 
-        micromamba env create -f environment.yml
+        git-lfs pull
 
-2. Copy `config/config_example.json` and adapt it to your needs.
-3. In order to run sub-tiling procedure cm_vsm should be installed (https://github.com/kappazeta/cm-vsm).
-4. Make sure that your `GDAL_DATA` environment variable has been set, according to your GDAL version instead of the placeholder `YOUR_GDAL_VERSION` below:
+2. Create a micromamba environment.
+
+        micromamba create -f environment.yml
+
+3. Copy `config/config_example.json` and adapt it to your needs.
+4. In order to run sub-tiling procedure cm_vsm should be installed (https://github.com/kappazeta/cm-vsm).
+5. Make sure that your `GDAL_DATA` environment variable has been set, according to your GDAL version instead of the placeholder `YOUR_GDAL_VERSION` below:
 
         GDAL_DATA=/usr/share/gdal/YOUR_GDAL_VERSION
 
