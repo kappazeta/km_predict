@@ -58,7 +58,10 @@ class DataGenerator(Sequence):
 
     def __len__(self):
         """Denotes the number of batches per epoch"""
-        return int(np.floor(len(self.list_indices) / self.batch_size))
+        if len(self.list_indices) / self.batch_size:
+            return int(np.floor(len(self.list_indices) / self.batch_size))
+        else:
+            return int(np.floor(len(self.list_indices) / self.batch_size)) + 1
 
     def __getitem__(self, index):
         """Generate one batch of data"""
