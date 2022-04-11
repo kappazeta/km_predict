@@ -228,18 +228,15 @@ class CMPredict(ulog.Loggable):
                        'product_level': self.product,
                        'shuffle': False
                        }
-        predict_generator = DataGenerator(tile_paths, **self.params)
-        # sub_batch size 1 mean that we process data as whole, 2 dividing by half etc.
-        # set_normalization(predict_generator, tile_paths, 1)
-        # Run prediction
-        predictions = self.model.predict(predict_generator)
-        # sen2cor = predict_generator.get_sen2cor()
-        # mask = (sen2cor[:, :, :, 3] == 1)
-        # prediction_union = predictions
-        # prediction_union[mask, 3] = sen2cor[mask, 3]
-        y_pred = np.argmax(predictions, axis=3)
-        for i, prediction in enumerate(predictions):
-            save_masks_contrast(tile_paths[i], prediction, y_pred[i], self.prediction_product_path, self.classes)
+        # Predict in batches
+        for j in range(0, len(tile_paths), self.batch_size):
+            tile_paths_subset = tile_paths[j:(j + self.batch_size)]
+            predict_generator = DataGenerator(tile_paths_subset, **self.params)
+            # Run prediction
+            predictions = self.model.predict(predict_generator)
+            y_pred = np.argmax(predictions, axis=3)
+            for i, prediction in enumerate(predictions):
+                save_masks_contrast(tile_paths_subset[i], prediction, y_pred[i], self.prediction_product_path, self.classes)
         return
 
     def mosaic(self):
