@@ -1,5 +1,10 @@
 {
-  "cm_vsm_executable" : "cm_vsm",
+  "cm_vsm": {
+    "path": "cm_vsm",
+    "env": {
+      "LD_LIBRARY_PATH": "."
+    }
+  },
   "folder_name": "data",
   "product_name": "S2A_MSIL1C_20210608T103021_N0300_R108_T31TFJ_20210608T123816",
   "level_product": "L1C",

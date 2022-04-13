@@ -2,7 +2,7 @@
 
 # KappaMask predictor.
 #
-# Copyright 2021 KappaZeta Ltd.
+# Copyright 2021 - 2022 KappaZeta Ltd.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -48,6 +48,7 @@ class CMPredict(ulog.Loggable):
             "batch_size": 1
         }
         self.cm_vsm_executable = "cm_vsm"
+        self.cm_vsm_env = None
         self.product_name = ""
         self.data_folder = "data"
         self.weigths_folder = "weights"
@@ -99,7 +100,14 @@ class CMPredict(ulog.Loggable):
         :param d: Dictionary with the configuration tree.
         :param product_name: Sentinel-2 product name.
         """
-        self.cm_vsm_executable = d["cm_vsm_executable"]
+        if "cm_vsm_executable" in d:
+            self.cm_vsm_executable = d["cm_vsm_executable"]
+        elif "cm_vsm" in d:
+            if "path" in d["cm_vsm"]:
+                self.cm_vsm_executable = d["cm_vsm"]["path"]
+            if "env" in d["cm_vsm"]:
+                self.cm_vsm_env = d["cm_vsm"]["env"]
+
         if product_name:
             self.product_name = product_name
         else:
@@ -150,7 +158,7 @@ class CMPredict(ulog.Loggable):
         Get the version of the cm-vsm utility.
         """
         q = [self.cm_vsm_executable, "--version"]
-        with subprocess.Popen(q, stdout=subprocess.PIPE) as cm_vsm_process:
+        with subprocess.Popen(q, stdout=subprocess.PIPE, env=self.cm_vsm_env) as cm_vsm_process:
             for line in cm_vsm_process.stdout:
                 cm_vsm_output = line.decode("utf-8").rstrip("\n")
                 if "Version:" in cm_vsm_output:
@@ -182,7 +190,7 @@ class CMPredict(ulog.Loggable):
             cm_vsm_query += ["-g", self.aoi_geom]
 
         self.log.info("Splitting with CM-VSM: {}".format(cm_vsm_query))
-        with subprocess.Popen(cm_vsm_query, stdout=subprocess.PIPE) as cm_vsm_process:
+        with subprocess.Popen(cm_vsm_query, stdout=subprocess.PIPE, env=self.cm_vsm_env) as cm_vsm_process:
             for line in cm_vsm_process.stdout:
                 cm_vsm_output = line.decode("utf-8").rstrip("\n")
                 self.log.info(cm_vsm_output)
