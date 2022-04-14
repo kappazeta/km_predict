@@ -108,7 +108,7 @@ class CMPredict(ulog.Loggable):
             self.weights = "l2a_ft_deeplab.hdf5"
             self.features = ["AOT", "B01", "B02", "B03", "B04", "B05", "B06", "B07", "B08", "B8A", "B09", "B11","B12", "WVP"]
         elif d["level_product"] == "L1C":
-            self.weights = "l1c.hdf5"
+            self.weights = "l1c_ft_deeplab.hdf5"
             self.features = ["B01", "B02", "B03", "B04", "B05", "B06", "B07", "B08", "B8A", "B09", "B10", "B11", "B12"]
         self.product = d["level_product"]
         self.overlapping = d["overlapping"]
