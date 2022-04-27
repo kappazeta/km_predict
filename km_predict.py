@@ -113,7 +113,7 @@ class KMPredict(ulog.Loggable):
         else:
             self.product_name = d["product_name"]
         if d["level_product"] == "L2A":
-            self.weights = "l2a_ft_deeplab.hdf5"
+            self.weights = "l2a_v4_xception.hdf5"
             self.features = ["AOT", "B01", "B02", "B03", "B04", "B05", "B06", "B07", "B08", "B8A", "B09", "B11","B12", "WVP"]
         elif d["level_product"] == "L1C":
             self.weights = "l1c_v3_xception.hdf5"
