@@ -93,7 +93,7 @@ class Unet(CMModel):
 
             self.model = tf.keras.Model(inputs, conv10)
 
-            #self.model.summary()
+            self.model.summary()
 
             if pretrained_weights:
                 self.model.load_weights(pretrained_weights)
@@ -123,13 +123,14 @@ class DeepLab(CMModel):
 
         with tf.name_scope('Model'):
             inputs = tf.keras.layers.Input(self.input_shape, name='input')
-            resnet50 = tf.keras.applications.ResNet50(include_top = False, input_tensor = inputs, weights = None)
-            x = resnet50.get_layer('conv4_block6_2_relu').output
+            x_padding = tf.keras.layers.ZeroPadding2D(padding = (2,2))(inputs)
+            xception = tf.keras.applications.Xception(include_top = False, input_tensor = x_padding, weights = None)
+            x = xception.get_layer('block13_sepconv2_bn').output
             x = self.ASPP(x)
 
             input_a = tf.keras.layers.UpSampling2D(size = (width // 4 // x.shape[1], height // 4 // x.shape[2]),
             interpolation = 'bilinear')(x)
-            input_b = resnet50.get_layer('conv2_block3_2_relu').output
+            input_b = xception.get_layer('block3_sepconv2_bn').output
             input_b = self.convolutional_block(input_b, num_filters = 48, kernel_size = 1)
             
             x = tf.keras.layers.Concatenate(axis = -1)([input_a, input_b])
@@ -142,6 +143,8 @@ class DeepLab(CMModel):
             self.model = tf.keras.Model(inputs, outputs)
             if pretrained_weights:
                 self.model.load_weights(pretrained_weights)
+
+            self.model.summary()
             
             return self.model
 

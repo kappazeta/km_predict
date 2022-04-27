@@ -37,8 +37,8 @@ from pkg_resources import parse_version
 import math
 
 
-class CMPredict(ulog.Loggable):
-    def __init__(self, log_abbrev="CMP.P"):
+class KMPredict(ulog.Loggable):
+    def __init__(self, log_abbrev="KMP.P"):
         super().__init__(log_abbrev)
         self.cfg = {
             "data_dir": ".SAFE",
@@ -116,7 +116,7 @@ class CMPredict(ulog.Loggable):
             self.weights = "l2a_ft_deeplab.hdf5"
             self.features = ["AOT", "B01", "B02", "B03", "B04", "B05", "B06", "B07", "B08", "B8A", "B09", "B11","B12", "WVP"]
         elif d["level_product"] == "L1C":
-            self.weights = "l1c_ft_deeplab.hdf5"
+            self.weights = "l1c_v3_xception.hdf5"
             self.features = ["B01", "B02", "B03", "B04", "B05", "B06", "B07", "B08", "B8A", "B09", "B10", "B11", "B12"]
         self.product = d["level_product"]
         self.overlapping = d["overlapping"]
@@ -312,7 +312,7 @@ class CMPredict(ulog.Loggable):
 
         # Fill metadata for PNG format
         metadata = PngInfo()
-        metadata.add_text("Software", "CM_PREDICT {}; CM_VSM {}".format(__version__, str(self.cm_vsm_version).strip()))
+        metadata.add_text("Software", "KM_PREDICT {}; CM_VSM {}".format(__version__, str(self.cm_vsm_version).strip()))
 
         # Save with a recommended quality and metadata for png, tif is done further down
         new_im_cropped.save(png_name, "PNG", quality=95, pnginfo=metadata)
@@ -345,7 +345,7 @@ class CMPredict(ulog.Loggable):
 
         # Add a version tag for tiff image
         tif_img = Image.open(tif_name)
-        tif_img.tag[305] = "CM_PREDICT {}; CM_VSM {}".format(__version__, str(self.cm_vsm_version).strip())
+        tif_img.tag[305] = "KM_PREDICT {}; CM_VSM {}".format(__version__, str(self.cm_vsm_version).strip())
         tif_img.save(tif_name, tiffinfo=tif_img.tag)
 
 
@@ -359,7 +359,7 @@ def main():
     p.add_argument("-v", "--verbosity", action="store", dest="verbosity", default=1,
                    help="Verbosity level for logging: 0-WARNING, 1-INFO, 2-DEBUG. Default is 1.")
     p.add_argument("-l", "--log-file", action="store", dest="log_file_path",
-                   default=os.path.join(pathlib.Path(__file__).parent.absolute(), 'cm_predict.log'),
+                   default=os.path.join(pathlib.Path(__file__).parent.absolute(), 'km_predict.log'),
                    help="Optional argument to specify a location for .log file.")
     p.add_argument("-O", "--tiling-output", action="store", dest="path_out_tiling",
                    help="Override the path to the tiling output directory.")
@@ -371,24 +371,24 @@ def main():
 
     args = p.parse_args()
 
-    log = ulog.init_logging(int(args.verbosity), "cm_predict", "CMP", args.log_file_path)
+    log = ulog.init_logging(int(args.verbosity), "km_predict", "KMP", args.log_file_path)
 
     if args.path_config is None:
         p.print_help()
         log.error("Expecting the path to a configuration file")
     else:
-        cmf = CMPredict()
-        cmf.load_config(args.path_config, args.product_name)
-        cm_vsm_version = cmf.get_cm_vsm_version()
+        kmf = KMPredict()
+        kmf.load_config(args.path_config, args.product_name)
+        cm_vsm_version = kmf.get_cm_vsm_version()
 
         # Ensure that we have a compatible version of cm-vsm.
         if parse_version(cm_vsm_version) < parse_version(min_cm_vsm_version):
             log.error("Please update cm-vsm to " + min_cm_vsm_version + " or later")
         else:
             if not args.no_sub_tiling:
-                cmf.sub_tile(args.path_out_tiling, args.aoi_geom)
-            cmf.predict()
-            cmf.mosaic()
+                kmf.sub_tile(args.path_out_tiling, args.aoi_geom)
+            kmf.predict()
+            kmf.mosaic()
 
 
 if __name__ == "__main__":

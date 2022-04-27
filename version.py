@@ -24,4 +24,4 @@ min_cm_vsm_version = '0.2.6'
 # 1.0.3 - Mosaic performance optimization.
 # 1.0.2 - Mosaic function is unified.
 # 1.0.1 - L1C support, new weights files.
-# 1.0.0 - cm_predict version implementation, logger implementation, image rotating  on re-creation fix.
+# 1.0.0 - km_predict version implementation, logger implementation, image rotating  on re-creation fix.
