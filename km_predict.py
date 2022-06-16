@@ -112,12 +112,15 @@ class KMPredict(ulog.Loggable):
             self.product_name = product_name
         else:
             self.product_name = d["product_name"]
+        
+        self.weights = '%s_%s.hdf5' % (d["level_product"].lower(), d["architecture"].lower())
         if d["level_product"] == "L2A":
-            self.weights = "l2a_v4_xception.hdf5"
-            self.features = ["AOT", "B01", "B02", "B03", "B04", "B05", "B06", "B07", "B08", "B8A", "B09", "B11","B12", "WVP"]
+            if d["architecture"] == "DeepLab":
+                self.features = ["AOT", "B01", "B02", "B03", "B04", "B05", "B06", "B07", "B08", "B8A", "B09", "B11","B12", "WVP"]
+            elif d["architecture"] == "Unet":
+                self.features = ["AOT", "B01", "B02", "B03", "B04", "B05", "B06", "B08", "B8A", "B09", "B11","B12", "WVP"]
         elif d["level_product"] == "L1C":
-            self.weights = "l1c_v3_xception.hdf5"
-            self.features = ["B01", "B02", "B03", "B04", "B05", "B06", "B07", "B08", "B8A", "B09", "B10", "B11", "B12"]
+            self.features = ["B01", "B02", "B03", "B04", "B05", "B06", "B07", "B08", "B8A", "B09", "B10", "B11", "B12"]  
         self.product = d["level_product"]
         self.overlapping = d["overlapping"]
         self.tile_size = d["tile_size"]
@@ -229,6 +232,7 @@ class KMPredict(ulog.Loggable):
 
         # Initialize data generator
         self.params = {'path_input': self.product_cvat,
+                       'architecture': self.architecture,
                        'batch_size': self.batch_size,
                        'features': self.features,
                        'tile_size': self.tile_size,
@@ -236,9 +240,18 @@ class KMPredict(ulog.Loggable):
                        'product_level': self.product,
                        'shuffle': False
                        }
+
+        #Check if prediction already exists
+        tile_paths_unseen = []
+        for tp in tile_paths:
+            path_image = tp.split('/')[-2:-1][0]
+            prediction_path = os.path.join(self.prediction_product_path, path_image, 'prediction.png')
+            if not os.path.exists(prediction_path):
+                tile_paths_unseen.append(tp) 
+
         # Predict in batches
-        for j in range(0, len(tile_paths), self.batch_size):
-            tile_paths_subset = tile_paths[j:(j + self.batch_size)]
+        for j in range(0, len(tile_paths_unseen), self.batch_size):
+            tile_paths_subset = tile_paths_unseen[j:(j + self.batch_size)]
             predict_generator = DataGenerator(tile_paths_subset, **self.params)
             # Run prediction
             predictions = self.model.predict(predict_generator)
