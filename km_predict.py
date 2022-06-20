@@ -35,6 +35,8 @@ import rasterio
 from version import __version__, min_cm_vsm_version
 from pkg_resources import parse_version
 import math
+import tensorflow as tf
+
 
 
 class KMPredict(ulog.Loggable):
@@ -199,7 +201,7 @@ class KMPredict(ulog.Loggable):
                 self.log.info(cm_vsm_output)
         self.log.info("Sub-tiling has been done!")
 
-    def predict(self):
+    def predict(self, force_predict = False):
         """
         Run prediction for every sub-folder
         """
@@ -246,13 +248,20 @@ class KMPredict(ulog.Loggable):
         for tp in tile_paths:
             path_image = tp.split('/')[-2:-1][0]
             prediction_path = os.path.join(self.prediction_product_path, path_image, 'prediction.png')
-            if not os.path.exists(prediction_path):
-                tile_paths_unseen.append(tp) 
+
+            # If True, run prediction on all tiles, else only on those for which prediction.png does not exist 
+            if force_predict:
+                tile_paths_unseen.append(tp)
+            else:
+                if not os.path.exists(prediction_path):
+                    tile_paths_unseen.append(tp)
 
         # Predict in batches
         for j in range(0, len(tile_paths_unseen), self.batch_size):
             tile_paths_subset = tile_paths_unseen[j:(j + self.batch_size)]
+            self.params['batch_size'] = len(tile_paths_subset)
             predict_generator = DataGenerator(tile_paths_subset, **self.params)
+
             # Run prediction
             predictions = self.model.predict(predict_generator)
             y_pred = np.argmax(predictions, axis=3)
@@ -369,6 +378,9 @@ def main():
                    help="Optional argument to override product name in config.")
     p.add_argument("-t", "--no-tiling", action="store_true", dest="no_sub_tiling", default=False,
                    help="Disable sub-tiling (the tile output directory has already been created).")
+    p.add_argument("-cpu", "--use-cpu", action="store_true", dest="use_cpu", default=False,
+                   help="Use CPU.")
+    p.add_argument("-f", "--force-predict", action="store_true", dest="force_predict", default=False, help="Force prediction on the tiles for which prediction.png already exists.")
     p.add_argument("-v", "--verbosity", action="store", dest="verbosity", default=1,
                    help="Verbosity level for logging: 0-WARNING, 1-INFO, 2-DEBUG. Default is 1.")
     p.add_argument("-l", "--log-file", action="store", dest="log_file_path",
@@ -386,6 +398,9 @@ def main():
 
     log = ulog.init_logging(int(args.verbosity), "km_predict", "KMP", args.log_file_path)
 
+    if args.use_cpu:
+        tf.config.set_visible_devices([], 'GPU')
+
     if args.path_config is None:
         p.print_help()
         log.error("Expecting the path to a configuration file")
@@ -400,9 +415,9 @@ def main():
         else:
             if not args.no_sub_tiling:
                 kmf.sub_tile(args.path_out_tiling, args.aoi_geom)
-            kmf.predict()
+              
+            kmf.predict(force_predict = args.force_predict)
             kmf.mosaic()
-
 
 if __name__ == "__main__":
     main()
