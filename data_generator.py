@@ -23,7 +23,6 @@ import netCDF4 as nc
 from keras.utils import np_utils
 from tensorflow.keras.utils import Sequence
 import numpy as np
-import cv2
 
 
 class DataGenerator(Sequence):
@@ -123,7 +122,6 @@ class DataGenerator(Sequence):
 
                     data_bands = np.stack(data_bands)
                     data_bands = np.rollaxis(data_bands, 0, 3)
-        #            data_bands = cv2.resize(data_bands, (516, 516))
                     x[i, ] = data_bands
 
         return x
@@ -138,7 +136,6 @@ class DataGenerator(Sequence):
                     data_bands = [np.asarray(root[f]) for f in self.features]
                     data_bands = np.stack(data_bands)
                     data_bands = np.rollaxis(data_bands, 0, 3)
-                    # data_bands = data_bands.reshape((self.dim[0], self.dim[1], len(self.features)))
                     x[i, ] = data_bands
 
         stds_list = []
@@ -148,7 +145,6 @@ class DataGenerator(Sequence):
         max_list = []
         x_reshaped = np.reshape(x, (len(list_indices_temp) * self.tile_size * self.tile_size, len(self.features)))
         for j, class_curr in enumerate(self.features):
-            # print(class_curr)
             std_array = np.std(x_reshaped[:, j])
             mean_array = np.mean(x_reshaped[:, j])
             unique = np.unique(x_reshaped[:, j])

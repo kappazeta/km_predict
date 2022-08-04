@@ -36,7 +36,7 @@ from version import __version__, min_cm_vsm_version
 from pkg_resources import parse_version
 import math
 import tensorflow as tf
-
+import urllib.request
 
 
 class KMPredict(ulog.Loggable):
@@ -47,13 +47,14 @@ class KMPredict(ulog.Loggable):
             "product": "L2A",
             "overlapping": 0.0625,
             "tile_size": 512,
-            "batch_size": 1
+            "batch_size": 1,
+            "model_weights_source": "http://kappamask.s3-website.eu-central-1.amazonaws.com/model_weights/2022-06-16"
         }
         self.cm_vsm_executable = "cm_vsm"
         self.cm_vsm_env = None
         self.product_name = ""
         self.data_folder = "data"
-        self.weigths_folder = "weights"
+        self.weights_folder = "weights"
         self.predict_folder = "prediction"
         self.big_image_folder = "prediction"
         self.weights = ""
@@ -80,6 +81,7 @@ class KMPredict(ulog.Loggable):
         self.cm_vsm_version = "-"
         self.model = None
         self.aoi_geom = None
+        self.model_weights_source = "http://kappamask.s3-website.eu-central-1.amazonaws.com/model_weights/2022-06-16"
 
     def create_folders(self):
         """
@@ -87,8 +89,8 @@ class KMPredict(ulog.Loggable):
         """
         if not os.path.exists(self.data_folder):
             os.mkdir(self.data_folder)
-        if not os.path.exists(self.weigths_folder):
-            os.mkdir(self.weigths_folder)
+        if not os.path.exists(self.weights_folder):
+            os.mkdir(self.weights_folder)
         if not os.path.exists(self.predict_folder):
             os.mkdir(self.predict_folder)
         if not os.path.exists(self.big_image_folder):
@@ -132,13 +134,16 @@ class KMPredict(ulog.Loggable):
         self.data_folder = d["folder_name"]
 
         self.product_safe = os.path.join(self.data_folder, str(self.product_name + ".SAFE"))
-        self.weights_path = os.path.join(self.weigths_folder, self.weights)
+        self.weights_path = os.path.join(self.weights_folder, self.weights)
         self.prediction_product_path = os.path.join(self.predict_folder, self.product_name)
 
         self.product_cvat = os.path.join(self.data_folder, (self.product_name + ".CVAT"))
 
         if "aoi_geometry" in d:
             self.aoi_geom = d["aoi_geometry"]
+
+        if "model_weights_source" in d:
+            self.model_weights_source = d["model_weights_source"]
 
     def load_config(self, path, product_name):
         with open(path, "rt") as fi:
@@ -169,6 +174,13 @@ class KMPredict(ulog.Loggable):
                 if "Version:" in cm_vsm_output:
                     self.cm_vsm_version = cm_vsm_output.split(":")[1]
         return self.cm_vsm_version
+
+    def get_model_weights(self):
+        if not os.path.exists(self.weights_path):
+            self.log.info("Downloading model weights {} ...".format(self.weights))
+            url = os.path.join(self.model_weights_source, self.weights)
+            site = urllib.request.urlopen(url)
+            urllib.request.urlretrieve(url, self.weights_path)
 
     def sub_tile(self, path_out, aoi_geom):
         """
@@ -413,6 +425,8 @@ def main():
         if parse_version(cm_vsm_version) < parse_version(min_cm_vsm_version):
             log.error("Please update cm-vsm to " + min_cm_vsm_version + " or later")
         else:
+            kmf.get_model_weights()
+
             if not args.no_sub_tiling:
                 kmf.sub_tile(args.path_out_tiling, args.aoi_geom)
               
