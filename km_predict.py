@@ -81,7 +81,7 @@ class KMPredict(ulog.Loggable):
         self.cm_vsm_version = "-"
         self.model = None
         self.aoi_geom = None
-        self.model_weights_source = "http://kappamask.s3-website.eu-central-1.amazonaws.com/model_weights/2022-06-16"
+        self.model_weights_source = "http://kappamask.s3-website.eu-central-1.amazonaws.com/model_weights/2022-09-13"
 
     def create_folders(self):
         """
@@ -119,7 +119,7 @@ class KMPredict(ulog.Loggable):
         
         self.weights = '%s_%s.hdf5' % (d["level_product"].lower(), d["architecture"].lower())
         if d["level_product"] == "L2A":
-            if d["architecture"] == "DeepLab":
+            if d["architecture"] == "DeepLabv3Plus":
                 self.features = ["AOT", "B01", "B02", "B03", "B04", "B05", "B06", "B07", "B08", "B8A", "B09", "B11","B12", "WVP"]
             elif d["architecture"] == "Unet":
                 self.features = ["AOT", "B01", "B02", "B03", "B04", "B05", "B06", "B08", "B8A", "B09", "B11","B12", "WVP"]
