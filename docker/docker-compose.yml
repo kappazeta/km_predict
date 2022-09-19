@@ -1,0 +1,10 @@
+version: '3.6'
+services:
+    km_predict:
+        build:
+            context: km_predict
+            dockerfile: Dockerfile
+            args:
+                - AWS_ACCESS_KEY=$AWS_ACCESS_KEY
+                - AWS_SECRET_KEY=$AWS_SECRET_KEY
+        container_name: kz_km_predict
