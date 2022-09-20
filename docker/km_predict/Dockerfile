@@ -1,5 +1,5 @@
 # ==== Build ====
-FROM ubuntu:latest AS builder
+FROM ubuntu:22.04 AS builder
 
 ENV LANG=C.UTF-8 LC_ALL=C.UTF-8
 
@@ -19,10 +19,10 @@ RUN pip3 install cget
 
 # Get cm-vsm
 RUN git clone --recurse-submodules https://github.com/kappazeta/cm-vsm.git && \
-    cd cm-vsm && git checkout v0.3.1
+    cd cm-vsm && git checkout v0.3.4
 # Install dependencies via cget
 RUN cd /home/cm-vsm/vsm/build && \
-    cget install
+    cget install -DJSON_BuildTests=Off
 # Prepare for build
 RUN cd /home/cm-vsm/vsm/build && \
     cmake ..
@@ -32,7 +32,7 @@ RUN cd /home/cm-vsm/vsm/build && \
 	make install
 
 # ==== Runtime ====
-FROM ubuntu:latest as runtime
+FROM ubuntu:22.04 as runtime
 
 ENV LANG=C.UTF-8 LC_ALL=C.UTF-8
 ENV LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/lib/:/usr/local/lib/x86_64-linux-gnu/
@@ -42,7 +42,7 @@ WORKDIR /home
 # Install system dependencies.
 RUN apt-get update --fix-missing && \
     DEBIAN_FRONTEND=noninteractive apt-get install -y \
-    lsb-release wget unzip vim-tiny libgdal26
+    lsb-release wget unzip vim-tiny libgdal30
 
 # Clean up after ourselves.
 RUN apt-get clean && \
