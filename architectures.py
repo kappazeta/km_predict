@@ -372,7 +372,6 @@ class DeepLabv3Plus(CMModel):
         with tf.name_scope('Model'):
             inputs = tf.keras.layers.Input(self.input_shape, name='input')
             extractor = XCeption().build_graph(inputs)
-            extractor.summary()
             x = extractor.get_layer('batch_normalization_36').output
              
             x = self.ASPP(x)

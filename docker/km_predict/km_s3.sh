@@ -12,8 +12,10 @@ dir_path_out=$2
 # L1C or L2A product?
 if [[ "${input_product}" =~ "MSIL2A" ]]; then
     input_product_level=L2A
+    bands="AOT,B01,B02,B03,B04,B05,B06,B07,B08,B8A,B09,B11,B12,WVP"
 else
     input_product_level=L1C
+    bands="B01,B02,B03,B04,B05,B06,B07,B08,B8A,B09,B10,B11,B12"
 fi
 
 cat >"${path_config}" <<EOF
@@ -43,8 +45,10 @@ echo "Activating Mamba environment"
 
 echo "Downloading ${input_product}"
 py_exec /home/get_s3.py ${input_product} /home/km_predict/data/
+echo "Splitting ${input_product}"
+cm_vsm -d "/home/km_predict/data/${input_product}.SAFE" -j -1 -b "${bands}" -S 512 -f 0 -m sinc -o 0.0625
 echo "Running km_predict"
-py_exec km_predict.py -c "${path_config}" ${@:3}
+py_exec km_predict.py -c "${path_config}" -t ${@:3}
 echo "Compressing the output"
 gdal_translate -co COMPRESS=LZMA -co TILED=YES /home/km_predict/prediction/${input_product}/${input_product_short}.tif /home/km_predict/prediction/${input_product}/${input_product_short}.compressed.tif
 echo "Creating overviews"

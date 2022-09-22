@@ -19,7 +19,7 @@ RUN pip3 install cget
 
 # Get cm-vsm
 RUN git clone --recurse-submodules https://github.com/kappazeta/cm-vsm.git && \
-    cd cm-vsm && git checkout v0.3.4
+    cd cm-vsm && git checkout v0.3.5
 # Install dependencies via cget
 RUN cd /home/cm-vsm/vsm/build && \
     cget install -DJSON_BuildTests=Off
@@ -95,4 +95,4 @@ COPY km_s3.sh /home/
 RUN chmod +x /home/km_s3.sh
 
 ENTRYPOINT ["/home/km_s3.sh"]
-# ENTRYPOINT ["sleep", "infinity"]
+#ENTRYPOINT ["sleep", "infinity"]
