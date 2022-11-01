@@ -2,6 +2,14 @@
 
 # KappaMask (km_predict) :cloud:
 KappaMask, or km-predict, is a cloud detector developed by [KappaZeta LTD](https://kappazeta.ee/) for Sentinel-2 Level-1C and Level-2A input products. 
+The project was funded by European Space Agency, Contract No. 4000132124/20/I-DT.
+
+KappaMask has been trained and validated with the following dataset:
+* Tetiana Shtym, Olga Wold, Marharyta Domnich, Kaupo Voormansik, Mariana Rohtsalu, Joosep Truupõld, Nikita Murin, Abdullah Toqeer, Catherine Akinyi Odera, Fariha Harun, Indrek Sünter, Heido Trofimov, Anton Kostiukhin, & Mihkel Järveoja. (2022). KappaSet: Sentinel-2 KappaZeta Cloud and Cloud Shadow Masks (Version 1) [Data set]. Zenodo. https://doi.org/10.5281/zenodo.7100327
+
+Related publications:
+* Marharyta Domnich, Indrek Sünter, Heido Trofimov, Olga Wold, Fariha Harun, Anton Kostiukhin, Mihkel Järveoja, Mihkel Veske, Tanel Tamm, Kaupo Voormansik, Aire Olesk, Valentina Boccia, Nicolas Longepe, and Enrico Giuseppe Cadau. 2021. "KappaMask: AI-Based Cloudmask Processor for Sentinel-2" Remote Sensing 13, no. 20: 4100. https://doi.org/10.3390/rs13204100
+
 ## Dependencies
 The following system dependencies are needed:
 * micromamba 0.18 or later (https://github.com/mamba-org/mamba)
@@ -26,6 +34,7 @@ Due to the long environment solve times with Miniconda, we have switched to Micr
 In the root of repository create a ```/data``` folder and copy or symlink the .SAFE product into it.
 
 ## Usage
+### Running locally
 Cloudmask inference can be run as follows:
 
     micromamba activate km_predict
@@ -38,6 +47,29 @@ It is possible to overwrite product_name in config file with command line argume
 If the prediction for the same product is running multiple times and .CVAT folder is created under ```/data``` folder, it might be convenient to disable sub_tiling procedure for the next run by -t
 
     python km_predict.py -c config/your_config.json -product S2B_MSIL2A_20200401T093029_N0214_R136_T34UFA_20200401T122148 -t
+
+### Running in Docker
+By default, the KappaMask Docker image runs the `km_s3` entrypoint, which expects a Sentinel-2 product title and output path in an S3 bucket.
+The entrypoint performs the following operations:
+1. Download the Sentinel-2 product in SAFE format from a Sentinel-Hub requester-pays dataset on AWS.
+2. Split the product into sub-tiles with overlap and without compression.
+3. Calculate the cloud mask for the product and mosaic the sub-tiles.
+4. Tile and compress the resulting mosaic and generate overviews.
+5. Upload the mask and sub-tiles to and S3 bucket.
+
+KappaMask can be run as a Docker container as follows:
+1. Pull the image
+
+        docker pull kappazeta/kappamask:v2.0
+
+2. Run KappaMask for a specific Sentinel-2 product on AWS (please make sure to replace `YOUR-AWS-REGION`, `YOUR-AWS-ACCESS-KEY`, `YOUR-AWS-SECRET-KEY`, `YOUR-S3-BUCKET` with your AWS configuration, and `YOUR-S2-PRODUCT-NAME` with the name of the product to process)
+
+        docker run -e AWS_REGION=YOUR-AWS-REGION -e AWS_ACCESS_KEY=YOUR-AWS-ACCESS-KEY -e AWS_SECRET_KEY=YOUR-AWS-SECRET-KEY kappazeta/kappamask:v2.0 YOUR-S2-PRODUCT-NAME s3://YOUR-S3-BUCKET/
+
+For example:
+
+    docker pull kappazeta/kappamask:v2.0
+    docker run -e AWS_REGION=eu-central-1 -e AWS_ACCESS_KEY=A******************F -e AWS_SECRET_KEY=3**************************************I kappazeta/kappamask:v2.0 S2A_MSIL2A_20200509T094041_N0214_R036_T35VME_20200509T111504 s3://my-kappamask-experiments/output/
 
 ## Output
 The predictor will generate sub-tiles masks under ```/prediction``` folder and full S2 mask under ```/big_image``` folder

@@ -82,17 +82,10 @@ RUN unzip /home/awscliv2.zip && \
     rm /home/awscliv2.zip && \
     ./aws/install
 
-ARG AWS_ACCESS_KEY
-ARG AWS_SECRET_KEY
-
-# Configure AWS CLI.
-RUN aws configure set region eu-central-1 && \
-    aws configure set aws_access_key_id $AWS_ACCESS_KEY && \
-    aws configure set aws_secret_access_key $AWS_SECRET_KEY
-
 COPY get_s3.py /home/
 COPY km_s3.sh /home/
-RUN chmod +x /home/km_s3.sh
+RUN chmod +x /home/km_s3.sh && \
+    ln -s /home/km_s3.sh /usr/local/bin/km_s3
 
-ENTRYPOINT ["/home/km_s3.sh"]
+ENTRYPOINT ["km_s3"]
 #ENTRYPOINT ["sleep", "infinity"]
