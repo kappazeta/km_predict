@@ -20,7 +20,7 @@ import os
 from platform import architecture
 import skimage.io as skio
 import netCDF4 as nc
-from keras.utils import np_utils
+from tensorflow.python.keras.utils import np_utils
 from tensorflow.keras.utils import Sequence
 import numpy as np
 
