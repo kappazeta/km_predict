@@ -4,11 +4,21 @@
 KappaMask, or km-predict, is a cloud detector developed by [KappaZeta LTD](https://kappazeta.ee/) for Sentinel-2 Level-1C and Level-2A input products. 
 The project was funded by European Space Agency, Contract No. 4000132124/20/I-DT.
 
+Currently, KappaMask outputs results in TIFF and PNG formats. Each pixel is classified as one of the following classes:
+Class | TIFF | PNG | Description |
+--- | --- | --- | --- | 
+Clear | 1 | 66 | Pixels without clouds or cloud shadows. |
+Cloud shadow | 2 | 129 | Pixels with cloud shadows. |
+Semi-transparent | 3 | 192 | Pixels with thin clouds through which the land is visible; include cirrus clouds that are on the high cloud level (5-15km). |
+Cloud | 4 | 255 | Pixels with cloud; include stratus and cumulus clouds that are on the low cloud level (from 0-0.2km to 2km). |
+Missing | 5 | 20 |  Missing or invalid pixels. | 
+
 KappaMask has been trained and validated with the following dataset:
 * Tetiana Shtym, Olga Wold, Marharyta Domnich, Kaupo Voormansik, Mariana Rohtsalu, Joosep Truupõld, Nikita Murin, Abdullah Toqeer, Catherine Akinyi Odera, Fariha Harun, Indrek Sünter, Heido Trofimov, Anton Kostiukhin, & Mihkel Järveoja. (2022). KappaSet: Sentinel-2 KappaZeta Cloud and Cloud Shadow Masks (Version 1) [Data set]. Zenodo. https://doi.org/10.5281/zenodo.7100327
 
 Related publications:
 * Marharyta Domnich, Indrek Sünter, Heido Trofimov, Olga Wold, Fariha Harun, Anton Kostiukhin, Mihkel Järveoja, Mihkel Veske, Tanel Tamm, Kaupo Voormansik, Aire Olesk, Valentina Boccia, Nicolas Longepe, and Enrico Giuseppe Cadau. 2021. "KappaMask: AI-Based Cloudmask Processor for Sentinel-2" Remote Sensing 13, no. 20: 4100. https://doi.org/10.3390/rs13204100
+
 
 ## Dependencies
 The following system dependencies are needed:
