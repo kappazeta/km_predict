@@ -47,8 +47,7 @@ class KMPredict(ulog.Loggable):
             "product": "L2A",
             "overlapping": 0.0625,
             "tile_size": 512,
-            "batch_size": 1,
-            "model_weights_source": "http://kappamask.s3-website.eu-central-1.amazonaws.com/model_weights/2022-06-16"
+            "batch_size": 1
         }
         self.cm_vsm_executable = "cm_vsm"
         self.cm_vsm_env = None
@@ -81,7 +80,7 @@ class KMPredict(ulog.Loggable):
         self.cm_vsm_version = "-"
         self.model = None
         self.aoi_geom = None
-        self.model_weights_source = "http://kappamask.s3-website.eu-central-1.amazonaws.com/model_weights/2022-09-13"
+        self.model_weights_source = "https://kappamask.s3.eu-central-1.amazonaws.com/model_weights/2023-03-04-denmark"
 
     def create_folders(self):
         """
@@ -117,7 +116,7 @@ class KMPredict(ulog.Loggable):
         else:
             self.product_name = d["product_name"]
         
-        self.weights = '%s_%s.hdf5' % (d["level_product"].lower(), d["architecture"].lower())
+        self.weights = '%s_%s_denmark.hdf5' % (d["level_product"].lower(), d["architecture"].lower())
         if d["level_product"] == "L2A":
             if d["architecture"] == "DeepLabv3Plus":
                 self.features = ["AOT", "B01", "B02", "B03", "B04", "B05", "B06", "B07", "B08", "B8A", "B09", "B11","B12", "WVP"]
@@ -277,6 +276,10 @@ class KMPredict(ulog.Loggable):
             # Run prediction
             predictions = self.model.predict(predict_generator)
             y_pred = np.argmax(predictions, axis=3)
+
+            # Threshold for semi-transparent class
+            y_pred[(y_pred == 3) & (predictions[:,:,:,3] <= 0.8)] = 1
+
             for i, prediction in enumerate(predictions):
                 save_masks_contrast(tile_paths_subset[i], prediction, y_pred[i], self.prediction_product_path, self.classes)
         return
