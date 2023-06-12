@@ -2,7 +2,7 @@
 
 # KappaMask predictor version and changelog.
 #
-# Copyright 2021 KappaZeta Ltd.
+# Copyright 2021 - 2022 KappaZeta Ltd.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -16,7 +16,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-__version__ = '1.0.5'
+__version__ = '1.1.0'
 min_cm_vsm_version = '0.2.6'
 
 # 1.0.5 - Calls to cm_vsm now less dependent on platform. Switch from miniconda to micromamba.
