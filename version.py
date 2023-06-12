@@ -2,7 +2,7 @@
 
 # KappaMask predictor version and changelog.
 #
-# Copyright 2021 - 2022 KappaZeta Ltd.
+# Copyright 2021 - 2023 KappaZeta Ltd.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -16,9 +16,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-__version__ = '1.1.0'
+__version__ = '1.1.1'
 min_cm_vsm_version = '0.2.6'
 
+# 1.1.1 - Improved error handling for splitting failures.
+# 1.1.0 - Model weights from AWS S3.
+# 1.0.6 - DeepLabv3 with XCeption backbone for L1C.
 # 1.0.5 - Calls to cm_vsm now less dependent on platform. Switch from miniconda to micromamba.
 # 1.0.4 - Support processing withing polygon-limited area of interest. Sub-tiles no longer flipped.
 # 1.0.3 - Mosaic performance optimization.

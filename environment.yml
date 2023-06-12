@@ -1,12 +1,11 @@
 name: km_predict
-channel_priority: strict
 channels:
   - conda-forge
   - defaults
 dependencies:
-  - python>=3.5
+  - python
   - pip
-  - numpy<=1.23.4
+  - numpy<=1.20.0
   - pandas
   - scikit-learn
   - scikit-image

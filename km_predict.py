@@ -2,7 +2,7 @@
 
 # KappaMask predictor.
 #
-# Copyright 2021 - 2022 KappaZeta Ltd.
+# Copyright 2021 - 2023 KappaZeta Ltd.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -24,6 +24,7 @@ from data_generator import DataGenerator
 from util.normalization import set_normalization
 from util.save_prediction_masks import save_masks_contrast
 import os
+import sys
 import numpy as np
 from util.raster_mosaic import get_img_entry_id, image_grid_overlap
 from util.rasterio_dep import proj_rasterio
@@ -116,7 +117,7 @@ class KMPredict(ulog.Loggable):
             self.product_name = product_name
         else:
             self.product_name = d["product_name"]
-        
+
         self.weights = '%s_%s.hdf5' % (d["level_product"].lower(), d["architecture"].lower())
         if d["level_product"] == "L2A":
             if d["architecture"] == "DeepLabv3Plus":
@@ -124,7 +125,7 @@ class KMPredict(ulog.Loggable):
             elif d["architecture"] == "Unet":
                 self.features = ["AOT", "B01", "B02", "B03", "B04", "B05", "B06", "B08", "B8A", "B09", "B11","B12", "WVP"]
         elif d["level_product"] == "L1C":
-            self.features = ["B01", "B02", "B03", "B04", "B05", "B06", "B07", "B08", "B8A", "B09", "B10", "B11", "B12"]  
+            self.features = ["B01", "B02", "B03", "B04", "B05", "B06", "B07", "B08", "B8A", "B09", "B10", "B11", "B12"]
         self.product = d["level_product"]
         self.overlapping = d["overlapping"]
         self.tile_size = d["tile_size"]
@@ -211,7 +212,11 @@ class KMPredict(ulog.Loggable):
             for line in cm_vsm_process.stdout:
                 cm_vsm_output = line.decode("utf-8").rstrip("\n")
                 self.log.info(cm_vsm_output)
-        self.log.info("Sub-tiling has been done!")
+            cm_vsm_process.wait()
+            if cm_vsm_process.returncode == 0:
+                self.log.info(f"Sub-tiling has been done! {cm_vsm_process.returncode}")
+            else:
+                raise RuntimeError(f"Sub-tiling failed with return code {cm_vsm_process.returncode}.")
 
     def predict(self, force_predict = False):
         """
@@ -261,7 +266,7 @@ class KMPredict(ulog.Loggable):
             path_image = tp.split('/')[-2:-1][0]
             prediction_path = os.path.join(self.prediction_product_path, path_image, 'prediction.png')
 
-            # If True, run prediction on all tiles, else only on those for which prediction.png does not exist 
+            # If True, run prediction on all tiles, else only on those for which prediction.png does not exist
             if force_predict:
                 tile_paths_unseen.append(tp)
             else:
@@ -302,10 +307,10 @@ class KMPredict(ulog.Loggable):
         """
         A function that creates raster mosaic.
         As parameters it takes: list of images, number of tiles per row and number of columns
-        
+
         1) Takes the sub-tile width and height from the first image in the list
         2) Sets final image size from col*width, rows*height
-        3) Creates final image from all sub-tiles, bounding box parameters are also set 
+        3) Creates final image from all sub-tiles, bounding box parameters are also set
         """
         overlap_pix = self.overlapping * self.tile_size
         crop_coef = int(overlap_pix / 2)
@@ -417,21 +422,25 @@ def main():
         p.print_help()
         log.error("Expecting the path to a configuration file")
     else:
-        kmf = KMPredict()
-        kmf.load_config(args.path_config, args.product_name)
-        cm_vsm_version = kmf.get_cm_vsm_version()
+        try:
+            kmf = KMPredict()
+            kmf.load_config(args.path_config, args.product_name)
+            cm_vsm_version = kmf.get_cm_vsm_version()
 
-        # Ensure that we have a compatible version of cm-vsm.
-        if parse_version(cm_vsm_version) < parse_version(min_cm_vsm_version):
-            log.error("Please update cm-vsm to " + min_cm_vsm_version + " or later")
-        else:
-            kmf.get_model_weights()
+            # Ensure that we have a compatible version of cm-vsm.
+            if parse_version(cm_vsm_version) < parse_version(min_cm_vsm_version):
+                log.error("Please update cm-vsm to " + min_cm_vsm_version + " or later")
+            else:
+                kmf.get_model_weights()
 
-            if not args.no_sub_tiling:
-                kmf.sub_tile(args.path_out_tiling, args.aoi_geom)
-              
-            kmf.predict(force_predict = args.force_predict)
-            kmf.mosaic()
+                if not args.no_sub_tiling:
+                    kmf.sub_tile(args.path_out_tiling, args.aoi_geom)
+
+                kmf.predict(force_predict = args.force_predict)
+                kmf.mosaic()
+        except Exception as e:
+            log.exception(f"Failed to process product {kmf.product_safe}")
+            sys.exit(1)
 
 if __name__ == "__main__":
     main()
