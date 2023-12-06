@@ -1,5 +1,5 @@
 # ==== Build ====
-FROM ubuntu:22.04 AS builder
+FROM tensorflow/tensorflow:2.15.0 AS builder
 
 ENV LANG=C.UTF-8 LC_ALL=C.UTF-8
 
@@ -28,11 +28,11 @@ RUN cd /home/cm-vsm/vsm/build && \
     cmake ..
 # Build
 RUN cd /home/cm-vsm/vsm/build && \
-    make && \
+    make -j4 && \
 	make install
 
 # ==== Runtime ====
-FROM ubuntu:22.04 as runtime
+FROM tensorflow/tensorflow:2.15.0 as runtime
 
 ENV LANG=C.UTF-8 LC_ALL=C.UTF-8
 ENV LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/lib/:/usr/local/lib/x86_64-linux-gnu/
@@ -53,28 +53,6 @@ COPY --from=builder /usr/bin/ /usr/bin/
 COPY --from=builder /usr/lib/ /usr/lib/
 RUN ldconfig
 
-# Get cm-predict
-RUN mkdir -p /home/km_predict_weights && \
-    wget -q http://kappamask.s3-website.eu-central-1.amazonaws.com/model_weights/2022-09-13/l1c_deeplabv3plus.hdf5 -O /home/km_predict_weights/l1c_deeplabv3plus.hdf5
-RUN wget -q http://kappamask.s3-website.eu-central-1.amazonaws.com/model_weights/2022-09-13/l2a_deeplabv3plus.hdf5 -O /home/km_predict_weights/l2a_deeplabv3plus.hdf5
-RUN git clone --recurse-submodules https://github.com/kappazeta/km_predict.git && cd km_predict && git checkout v2.0
-RUN mv /home/km_predict_weights /home/km_predict/weights
-
-# Install MiniConda.
-RUN wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -O /tmp/Miniconda3-latest-Linux-x86_64.sh
-RUN bash /tmp/Miniconda3-latest-Linux-x86_64.sh -b -p /opt/conda
-RUN rm /tmp/Miniconda3-latest-Linux-x86_64.sh
-RUN chmod a+rx /opt/conda/etc/profile.d/conda.sh
-RUN ln -s /opt/conda/etc/profile.d/conda.sh /etc/profile.d/conda.sh
-RUN /opt/conda/bin/conda install -c conda-forge mamba
-ENV PATH="${PATH}:/opt/conda/bin"
-
-# Install dependencies
-RUN cd /home/km_predict && \
-    mamba env create -p /opt/conda/envs/km_predict -f environment.yml && \
-    mamba clean --all
-RUN bash -c 'source /etc/profile.d/conda.sh && conda activate km_predict && pip3 install boto3 sentinelhub[AWS]'
-
 # Download AWS CLI.
 RUN wget "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -O /home/awscliv2.zip
 # Install AWS CLI.
@@ -82,10 +60,23 @@ RUN unzip /home/awscliv2.zip && \
     rm /home/awscliv2.zip && \
     ./aws/install
 
-COPY get_s3.py /home/
-COPY km_s3.sh /home/
-RUN chmod +x /home/km_s3.sh && \
-    ln -s /home/km_s3.sh /usr/local/bin/km_s3
+# Install dependencies.
+RUN pip3 install scikit-image==0.22.0 netcdf4==1.6.5 rasterio==1.3.9 \
+    pytest==7.4.3 scikit-learn==1.3.2 boto3 sentinelhub[AWS]
+
+# Get cm-predict
+RUN mkdir -p /home/km_predict_weights && \
+    wget -q http://kappamask.s3-website.eu-central-1.amazonaws.com/model_weights/2022-09-13/l1c_deeplabv3plus.hdf5 -O /home/km_predict_weights/l1c_deeplabv3plus.hdf5
+RUN wget -q http://kappamask.s3-website.eu-central-1.amazonaws.com/model_weights/2022-09-13/l2a_deeplabv3plus.hdf5 -O /home/km_predict_weights/l2a_deeplabv3plus.hdf5
+RUN git clone --recurse-submodules https://github.com/kappazeta/km_predict.git && cd km_predict && git checkout v2.1
+RUN mv /home/km_predict_weights /home/km_predict/weights
+
+COPY get_s3.py km_s3.sh km_local.sh km_test.sh /home/
+RUN chmod +x /home/km_s3.sh /home/km_local.sh /home/km_test.sh && \
+    ln -s /home/km_s3.sh /usr/local/bin/km_s3 && \
+    ln -s /home/km_local.sh /usr/local/bin/km_local && \
+    ln -s /home/km_test.sh /usr/local/bin/km_test
 
 ENTRYPOINT ["km_s3"]
-#ENTRYPOINT ["sleep", "infinity"]
+# ENTRYPOINT ["km_test"]
+# ENTRYPOINT ["km_local"]
