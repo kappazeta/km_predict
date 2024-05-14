@@ -56,17 +56,13 @@ function config_aws() {
     aws configure set aws_secret_access_key ${AWS_SECRET_KEY}
 }
 
-function py_exec() {
-    cd /home/km_predict/ && source /etc/profile.d/conda.sh && conda activate km_predict && python3 $@
-}
-
 function process() {
     echo "Downloading ${input_product}"
-    py_exec /home/get_s3.py ${input_product} /home/km_predict/data/
+    python3 /home/get_s3.py ${input_product} /home/km_predict/data/
     echo "Splitting ${input_product}"
     cm_vsm -d "/home/km_predict/data/${input_product}.SAFE" -j -1 -b "${bands}" -S 512 -f 0 -m sinc -o 0.0625
     echo "Running km_predict"
-    py_exec km_predict.py -c "${path_config}" -t ${@:3}
+    python3 km_predict.py -c "${path_config}" -t ${@:3}
     echo "Compressing the output"
     gdal_translate -co COMPRESS=LZMA -co TILED=YES /home/km_predict/prediction/${input_product}/${input_product_short}.tif /home/km_predict/prediction/${input_product}/${input_product_short}.compressed.tif
     echo "Creating overviews"
