@@ -26,7 +26,7 @@ import numpy as np
 
 
 class DataGenerator(Sequence):
-    def __init__(self, list_indices, path_input, architecture, batch_size, features, tile_size, num_classes, product_level,
+    def __init__(self, list_indices, path_input, architecture, batch_size, features, tile_size, num_classes, product_level, offsets,
                  shuffle=True, png_form=False):
         """ Initialization """
         self.path = path_input
@@ -63,6 +63,7 @@ class DataGenerator(Sequence):
             self.features = features
         self.tile_size = tile_size
         self.num_classes = num_classes
+        self.offsets = offsets
         self.indexes = []
         self.shuffle = shuffle
         self.on_epoch_end()
@@ -109,19 +110,24 @@ class DataGenerator(Sequence):
         """Generates data containing batch_size samples"""  # X : (n_samples, *dim, n_channels)
         x = np.empty((self.batch_size, self.tile_size, self.tile_size, len(self.features)))
         y = np.empty((self.batch_size, self.tile_size, self.tile_size, self.num_classes), dtype=int)
+
+        self.max_v = list(np.array(self.max_v) + self.offsets / 65535)
         # Initialization
         for i, file in enumerate(list_indices_temp):
             if os.path.isfile(file) and file.endswith('.nc'):
                 with nc.Dataset(file, 'r') as root:
                     if self.normalization == "minmax":
-                        data_bands = [(np.asarray(root[f]) - self.min_v[i]) / (self.max_v[i] - self.min_v[i]) for i, f
+                        data_bands = np.asarray([np.asarray(root[f]) for i, f in enumerate(self.features)])
+                        data_bands = data_bands + (np.reshape(self.offsets, (len(self.features), 1, 1)) / 65535) 
+                        data_bands = [(data_bands[i] - self.min_v[i]) / (self.max_v[i] - self.min_v[i]) for i, f
                                       in enumerate(self.features)]
                     else:
-                        data_bands = [(np.asarray(root[f]) - self.means[i]) / (self.stds[i]) for i, f
+                        data_bands = [((np.asarray(root[f])) - self.means[i]) / (self.stds[i]) for i, f
                                       in enumerate(self.features)]
 
                     data_bands = np.stack(data_bands)
                     data_bands = np.rollaxis(data_bands, 0, 3)
+                    data_bands[data_bands < 0] = 0
                     x[i, ] = data_bands
 
         return x
