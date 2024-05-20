@@ -11,7 +11,7 @@ if [ "$#" -lt 2 ]; then
     exit 1
 fi
 
-
+wd=/data
 input_product=$1
 input_product_short=$(echo "$1" | sed 's@S2[AB]\+_MSI\(L[12AC]\+\)_\([0-9T]\+\)_N[0-9]\+_R[0-9]\+_\(T[0-9A-Z]\+\)_[0-9T]\+@\1_\3_\2_KZ_10m@')
 path_config=/home/km_predict/config/config.json
@@ -38,7 +38,7 @@ cat >"${path_config}" <<EOF
       "LD_LIBRARY_PATH": "."
     }
   },
-  "folder_name": "data",
+  "folder_name": "${wd}",
   "product_name": "${input_product}",
   "level_product": "${input_product_level}",
   "overlapping": 0.0625,
@@ -58,19 +58,21 @@ function config_aws() {
 
 function process() {
     echo "Downloading ${input_product}"
-    python3 /home/get_s3.py ${input_product} /home/km_predict/data/
+    python3 /home/get_s3.py ${input_product} ${wd}/
     echo "Splitting ${input_product}"
-    cm_vsm -d "/home/km_predict/data/${input_product}.SAFE" -j -1 -b "${bands}" -S 512 -f 0 -m sinc -o 0.0625
+    cm_vsm -d "${wd}/${input_product}.SAFE" -j -1 -b "${bands}" -S 512 -f 0 -m sinc -o 0.0625
     echo "Running km_predict"
-    python3 km_predict.py -c "${path_config}" -t ${@:3}
+    cd /home/km_predict && python3 km_predict.py -c "${path_config}" -t ${@:3}
+    mkdir -p ${wd}/prediction
+    mv /home/km_predict/prediction/${input_product} ${wd}/prediction/
     echo "Compressing the output"
-    gdal_translate -co COMPRESS=LZMA -co TILED=YES /home/km_predict/prediction/${input_product}/${input_product_short}.tif /home/km_predict/prediction/${input_product}/${input_product_short}.compressed.tif
+    gdal_translate -co COMPRESS=LZMA -co TILED=YES ${wd}/prediction/${input_product}/${input_product_short}.tif ${wd}/prediction/${input_product}/${input_product_short}.compressed.tif
     echo "Creating overviews"
-    gdaladdo /home/km_predict/prediction/${input_product}/${input_product_short}.compressed.tif 2 4 8 16 32 64 128 256
+    gdaladdo ${wd}/prediction/${input_product}/${input_product_short}.compressed.tif 2 4 8 16 32 64 128 256
     echo "Uploading results to S3"
-    rm /home/km_predict/prediction/${input_product}/${input_product_short}.tif
-    mv /home/km_predict/prediction/${input_product}/${input_product_short}.compressed.tif /home/km_predict/prediction/${input_product}/${input_product_short}.tif
-    aws s3 cp --no-progress --recursive /home/km_predict/prediction/${input_product}/ ${dir_path_out}${input_product}/
+    rm ${wd}/prediction/${input_product}/${input_product_short}.tif
+    mv ${wd}/prediction/${input_product}/${input_product_short}.compressed.tif ${wd}/prediction/${input_product}/${input_product_short}.tif
+    aws s3 cp --no-progress --recursive ${wd}/prediction/${input_product}/ ${dir_path_out}${input_product}/
 }
 
 
