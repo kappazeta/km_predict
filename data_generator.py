@@ -117,6 +117,7 @@ class DataGenerator(Sequence):
             if os.path.isfile(file) and file.endswith('.nc'):
                 with nc.Dataset(file, 'r') as root:
                     if self.normalization == "minmax":
+                        # Take data bands from the NetCDF file, add offsets from S2 product metadata, scale pixel values by range.
                         data_bands = np.asarray([np.asarray(root[f]) for i, f in enumerate(self.features)])
                         data_bands = data_bands + (np.reshape(self.offsets, (len(self.features), 1, 1)) / 65535) 
                         data_bands = [(data_bands[i] - self.min_v[i]) / (self.max_v[i] - self.min_v[i]) for i, f

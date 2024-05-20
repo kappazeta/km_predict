@@ -197,7 +197,6 @@ class KMPredict(ulog.Loggable):
         return baseline
 
     def get_offset_list(self, filepath, features):
-
         tree = ET.parse(filepath)
         root = tree.getroot()
 
@@ -205,7 +204,7 @@ class KMPredict(ulog.Loggable):
         offset_list = root.find('.//Radiometric_Offset_List')
 
         if not offset_list:
-            offsets= np.zeros(len(features),)
+            offsets = np.zeros(len(features),)
             return offsets
             
         else:
@@ -215,7 +214,6 @@ class KMPredict(ulog.Loggable):
                     offsets.append(value)
 
             return np.array(offsets)
-        
 
     def sub_tile(self, path_out, aoi_geom):
         """
