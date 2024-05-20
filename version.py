@@ -16,9 +16,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-__version__ = '2.2.0'
+__version__ = '2.3.0'
 min_cm_vsm_version = '0.2.6'
 
+# 2.3.0 - Support band offsets in S2 product metadata.
 # 2.2.0 - Bump km_predict version to make it compatible with Docker image version numbers.
 # 1.1.0 - Docker image no longer relies on Conda.
 # 1.0.5 - Calls to cm_vsm now less dependent on platform. Switch from miniconda to micromamba.

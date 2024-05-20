@@ -37,6 +37,7 @@ from pkg_resources import parse_version
 import math
 import tensorflow as tf
 import urllib.request
+import xml.etree.ElementTree as ET
 
 
 class KMPredict(ulog.Loggable):
@@ -134,6 +135,13 @@ class KMPredict(ulog.Loggable):
         self.data_folder = d["folder_name"]
 
         self.product_safe = os.path.join(self.data_folder, str(self.product_name + ".SAFE"))
+        self.product_metadata = os.path.join(self.data_folder, str(self.product_name + ".SAFE"), "MTD_MSI%s.xml" % d["level_product"])
+
+        self.product_baseline = self.get_product_baseline(self.product_metadata)
+        self.offsets = self.get_offset_list(self.product_metadata, self.features)
+
+        # Access data
+
         self.weights_path = os.path.join(self.weights_folder, self.weights)
         self.prediction_product_path = os.path.join(self.predict_folder, self.product_name)
 
@@ -182,6 +190,31 @@ class KMPredict(ulog.Loggable):
             site = urllib.request.urlopen(url)
             urllib.request.urlretrieve(url, self.weights_path)
 
+    def get_product_baseline(self, filepath):
+        tree = ET.parse(filepath)
+        root = tree.getroot()
+        baseline = root.findall('.//PROCESSING_BASELINE')[0].text
+        return baseline
+
+    def get_offset_list(self, filepath, features):
+        tree = ET.parse(filepath)
+        root = tree.getroot()
+
+        offsets = [] 
+        offset_list = root.find('.//Radiometric_Offset_List')
+
+        if not offset_list:
+            offsets = np.zeros(len(features),)
+            return offsets
+            
+        else:
+            for child in offset_list:
+                value = int(child.text.strip()) if child.text else None
+                if value is not None:
+                    offsets.append(value)
+
+            return np.array(offsets)
+
     def sub_tile(self, path_out, aoi_geom):
         """
         Execute cm-vsm sub-tiling process
@@ -207,6 +240,7 @@ class KMPredict(ulog.Loggable):
             cm_vsm_query += ["-g", self.aoi_geom]
 
         self.log.info("Splitting with CM-VSM: {}".format(cm_vsm_query))
+        self.log.info("Product processing baseline: %s" % self.product_baseline)
         with subprocess.Popen(cm_vsm_query, stdout=subprocess.PIPE, env=self.cm_vsm_env) as cm_vsm_process:
             for line in cm_vsm_process.stdout:
                 cm_vsm_output = line.decode("utf-8").rstrip("\n")
@@ -252,6 +286,7 @@ class KMPredict(ulog.Loggable):
                        'tile_size': self.tile_size,
                        'num_classes': len(self.classes),
                        'product_level': self.product,
+                       'offsets': self.offsets,
                        'shuffle': False
                        }
 
