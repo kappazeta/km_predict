@@ -31,14 +31,14 @@ def proj_rasterio(image, tif_mosaic):
 
     # Prepare output geotiff file. We give crs and gt read from input as spatial metadata
     with rasterio.open(
-            tif_mosaic,
-            'w',
-            driver='GTiff',
-            count=1,
-            height=processed_img.shape[0],
-            width=processed_img.shape[1],
-            dtype=processed_img.dtype,
-            crs=input_crs,
-            transform=input_gt
+        tif_mosaic,
+        "w",
+        driver="GTiff",
+        count=1,
+        height=processed_img.shape[0],
+        width=processed_img.shape[1],
+        dtype=processed_img.dtype,
+        crs=input_crs,
+        transform=input_gt,
     ) as output:
         output.write(processed_img, 1)

@@ -38,7 +38,7 @@ def get_img_entry_id(var):
 def image_grid(image_list, rows, cols):
     w, h = Image.open(image_list[0]).size
 
-    new_img = Image.new('RGB', size=(cols * w, rows * h))
+    new_img = Image.new("RGB", size=(cols * w, rows * h))
 
     for img in image_list:
         # Get row and column number
@@ -52,7 +52,7 @@ def image_grid(image_list, rows, cols):
 
 def image_grid_overlap(image_list, rows, cols, crop):
     w, h = Image.open(image_list[0]).size
-    new_img = Image.new('RGB', size=(cols * (w - crop * 2), rows * (h - crop * 2)))
+    new_img = Image.new("RGB", size=(cols * (w - crop * 2), rows * (h - crop * 2)))
 
     # Creates new empty image with taking the size from sub-tile from the list
     for img in image_list:
@@ -95,11 +95,11 @@ def image_grid_overlap(image_list, rows, cols, crop):
             img_crop = ImageOps.crop(img, border)
 
         # When all images in the list cropped, paste them in the new empty image
-        '''
+        """
         For the first tile set the offset 0,0
         As most of tiles are cropped 16 pixels from all 4 sides the offset should be shifted crop*2 on X and Y axis
         Border tiles are cropped differently, so the offsets are shifted only for "crop" argument
-        '''
+        """
         if col_id == 0:
             off_x = 0
         elif col_id == 1:

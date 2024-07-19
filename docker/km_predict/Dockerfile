@@ -71,7 +71,7 @@ RUN mkdir -p /home/km_predict/weights && \
     wget -q http://kappamask.s3-website.eu-central-1.amazonaws.com/model_weights/2022-09-13/l1c_deeplabv3plus.hdf5 -O /home/km_predict/weights/l1c_deeplabv3plus.hdf5 && \
     wget -q http://kappamask.s3-website.eu-central-1.amazonaws.com/model_weights/2022-09-13/l2a_deeplabv3plus.hdf5 -O /home/km_predict/weights/l2a_deeplabv3plus.hdf5
 
-COPY get_s3.py km_s3.sh km_local.sh km_test.sh /home/
+COPY get_s3.py km_s3.sh km_local.sh km_test.sh copernicus_s3_utils.py /home/
 RUN chmod +x /home/km_s3.sh /home/km_local.sh /home/km_test.sh && \
     ln -s /home/km_s3.sh /usr/local/bin/km_s3 && \
     ln -s /home/km_local.sh /usr/local/bin/km_local && \

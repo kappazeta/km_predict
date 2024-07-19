@@ -65,8 +65,10 @@ def init_logging(verbosity, app_name, app_abbrev, logfile=None):
     log.setLevel(log_level)
 
     # Create log formatters.
-    log_formatter = logging.Formatter('%(asctime)s: %(levelname)s: %(name)s: %(message)s')
-    stdout_formatter = logging.Formatter('%(levelname)s: %(name)s: %(message)s')
+    log_formatter = logging.Formatter(
+        "%(asctime)s: %(levelname)s: %(name)s: %(message)s"
+    )
+    stdout_formatter = logging.Formatter("%(levelname)s: %(name)s: %(message)s")
 
     # Info, debug messages to stdout (if we have enough verbosity).
     stdout_handler = logging.StreamHandler(sys.stdout)
@@ -89,8 +91,10 @@ def init_logging(verbosity, app_name, app_abbrev, logfile=None):
         log_handler.setFormatter(log_formatter)
         log.addHandler(log_handler)
 
-    log.info('=' * 75)
-    log.info(('=' * 10) + (' {} '.format(app_name)) + ('version {} '.format(__version__)))
-    log.info('=' * 75)
+    log.info("=" * 75)
+    log.info(
+        ("=" * 10) + (" {} ".format(app_name)) + ("version {} ".format(__version__))
+    )
+    log.info("=" * 75)
 
     return log

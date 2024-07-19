@@ -28,6 +28,7 @@ class CMModel(log.Loggable):
     """
     A generic model class to be subclassed by specific model architecture classes.
     """
+
     # log_abbrev is CMP.M which comes from architectures.py.__init__
     def __init__(self, log_abbrev):
         super(CMModel, self).__init__(log_abbrev)
@@ -43,14 +44,21 @@ class CMModel(log.Loggable):
         self.num_epochs = 3
 
         # Accuracy, precision, recall, f1, iou
-        self.METRICS_SET = {"accuracy": tf.keras.metrics.Accuracy(), "categorical_acc": tf.keras.metrics.CategoricalAccuracy(),
-                            "recall": tf.keras.metrics.Recall(), "precision": tf.keras.metrics.Precision(),
-                            "iou": tf.keras.metrics.MeanIoU(num_classes=6), 'f1': self.custom_f1}
+        self.METRICS_SET = {
+            "accuracy": tf.keras.metrics.Accuracy(),
+            "categorical_acc": tf.keras.metrics.CategoricalAccuracy(),
+            "recall": tf.keras.metrics.Recall(),
+            "precision": tf.keras.metrics.Precision(),
+            "iou": tf.keras.metrics.MeanIoU(num_classes=6),
+            "f1": self.custom_f1,
+        }
         self.monitored_metric = self.METRICS_SET["iou"]
 
-        self.path_checkpoint = ''
+        self.path_checkpoint = ""
 
-    def construct(self, width, height, num_channels, num_categories, pretrained_weights=False):
+    def construct(
+        self, width, height, num_channels, num_categories, pretrained_weights=False
+    ):
         """
         Just an abstract placeholder function to be overloaded by subclasses.
         :param width: Width of a single sample (must be an odd number).
@@ -66,11 +74,18 @@ class CMModel(log.Loggable):
         Compile the model for the Adam optimizer.
         :return:
         """
-        with tf.name_scope('Optimizer'):
+        with tf.name_scope("Optimizer"):
             l_op = tf.keras.optimizers.Adam(learning_rate=self.learning_rate)
-        self.model.compile(optimizer=l_op, loss=self.dice_loss, #self.dice_loss, #'categorical_crossentropy',
-                           metrics=[self.METRICS_SET["precision"], self.METRICS_SET["recall"],
-                                    self.METRICS_SET["categorical_acc"], self.METRICS_SET['f1']])
+        self.model.compile(
+            optimizer=l_op,
+            loss=self.dice_loss,  # self.dice_loss, #'categorical_crossentropy',
+            metrics=[
+                self.METRICS_SET["precision"],
+                self.METRICS_SET["recall"],
+                self.METRICS_SET["categorical_acc"],
+                self.METRICS_SET["f1"],
+            ],
+        )
         self.model.summary(print_fn=self.log.info)
 
         return self.model
@@ -94,7 +109,7 @@ class CMModel(log.Loggable):
         Set a path prefix for model training.
         :param prefix: Path prefix, should end with a filename prefix.
         """
-        self.path_checkpoint = prefix + '_{epoch:03d}-{val_loss:.2f}.hdf5'
+        self.path_checkpoint = prefix + "_{epoch:03d}-{val_loss:.2f}.hdf5"
 
     def set_num_samples(self, num_train_samples, num_val_samples):
         """
@@ -138,7 +153,11 @@ class CMModel(log.Loggable):
         precision, recall = precision_m(y_true, y_pred), recall_m(y_true, y_pred)
 
         f1 = 2 * ((precision * recall) / (precision + recall + K.epsilon()))
-        weighted_f1 = f1 * K.sum(K.round(K.clip(y_true, 0, 1))) / K.sum(K.round(K.clip(y_true, 0, 1)))
+        weighted_f1 = (
+            f1
+            * K.sum(K.round(K.clip(y_true, 0, 1)))
+            / K.sum(K.round(K.clip(y_true, 0, 1)))
+        )
         weighted_f1 = K.sum(weighted_f1)
 
         return f1
@@ -152,15 +171,22 @@ class CMModel(log.Loggable):
             ref: https://arxiv.org/pdf/1606.04797v1.pdf
             """
             intersection = K.sum(K.abs(y_true * y_pred), axis=-1)
-            return (2. * intersection + smooth) / (K.sum(K.square(y_true), -1) + K.sum(K.square(y_pred), -1) + smooth)
+            return (2.0 * intersection + smooth) / (
+                K.sum(K.square(y_true), -1) + K.sum(K.square(y_pred), -1) + smooth
+            )
+
         return 1 - dice_coef(y_true, y_pred)
 
     @staticmethod
     def get_confusion_matrix(y_true, y_pred, classes):
         cm = confusion_matrix(y_true, y_pred)
-        cm_multi = multilabel_confusion_matrix(y_true, y_pred, labels=[0, 1, 2, 3, 4, 5])
-        cm_normalized = cm.astype('float') / cm.sum(axis=1)[:, np.newaxis]
-        cm_multi_norm = cm_multi.astype('float') / cm_multi.sum(axis=2)[:, :, np.newaxis]
+        cm_multi = multilabel_confusion_matrix(
+            y_true, y_pred, labels=[0, 1, 2, 3, 4, 5]
+        )
+        cm_normalized = cm.astype("float") / cm.sum(axis=1)[:, np.newaxis]
+        cm_multi_norm = (
+            cm_multi.astype("float") / cm_multi.sum(axis=2)[:, :, np.newaxis]
+        )
         return cm, cm_normalized, cm_multi, cm_multi_norm
 
     def fit(self, dataset_train, dataset_val):
@@ -171,19 +197,29 @@ class CMModel(log.Loggable):
         """
         callbacks = []
 
-        with tf.name_scope('Callbacks'):
-            early_stopping = tf.keras.callbacks.EarlyStopping(monitor="val_loss", mode='min', patience=50)
+        with tf.name_scope("Callbacks"):
+            early_stopping = tf.keras.callbacks.EarlyStopping(
+                monitor="val_loss", mode="min", patience=50
+            )
             callbacks.append(early_stopping)
 
-            if self.path_checkpoint != '':
+            if self.path_checkpoint != "":
                 model_checkpoint = tf.keras.callbacks.ModelCheckpoint(
-                    self.path_checkpoint, monitor="val_custom_f1",
-                    save_weights_only=True, mode='max'
+                    self.path_checkpoint,
+                    monitor="val_custom_f1",
+                    save_weights_only=True,
+                    mode="max",
                 )
                 callbacks.append(model_checkpoint)
 
             lr_reducer = tf.keras.callbacks.ReduceLROnPlateau(
-                monitor="val_loss", factor=0.5, patience=30, mode='min', min_delta=0.0001, cooldown=0, min_lr=0
+                monitor="val_loss",
+                factor=0.5,
+                patience=30,
+                mode="min",
+                min_delta=0.0001,
+                cooldown=0,
+                min_lr=0,
             )
             callbacks.append(lr_reducer)
 
@@ -192,10 +228,14 @@ class CMModel(log.Loggable):
 
         # TODO:: Duplicate a random number of samples, to fill batches.
 
-        with tf.name_scope('Training'):
+        with tf.name_scope("Training"):
             history = self.model.fit_generator(
-                dataset_train, validation_data=dataset_val, callbacks=callbacks, epochs=self.num_epochs,
-                steps_per_epoch=num_train_batches_per_epoch, validation_steps=num_val_batches_per_epoch
+                dataset_train,
+                validation_data=dataset_val,
+                callbacks=callbacks,
+                epochs=self.num_epochs,
+                steps_per_epoch=num_train_batches_per_epoch,
+                validation_steps=num_val_batches_per_epoch,
             )
         return history
 

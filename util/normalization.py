@@ -26,8 +26,9 @@ def set_normalization(generator, split, sub_batch):
     all_min = []
     all_max = []
     for i in range(sub_batch):
-        curr_std, curr_mean_list, curr_unique_list, curr_min, curr_max = generator.get_normal_par(
-            split[i * samples:(i + 1) * samples])
+        curr_std, curr_mean_list, curr_unique_list, curr_min, curr_max = (
+            generator.get_normal_par(split[i * samples : (i + 1) * samples])
+        )
         sum_std.append(curr_std)
         sum_mean.append(curr_mean_list)
         all_min.append(curr_min)
@@ -49,4 +50,9 @@ def set_normalization(generator, split, sub_batch):
     generator.set_means(final_mean.tolist())
     generator.set_min(final_min.tolist())
     generator.set_max(final_max.tolist())
-    return final_std.tolist(), final_mean.tolist(), final_min.tolist(), final_max.tolist()
+    return (
+        final_std.tolist(),
+        final_mean.tolist(),
+        final_min.tolist(),
+        final_max.tolist(),
+    )

@@ -24,7 +24,7 @@ import numpy as np
 
 def save_masks_contrast(path_image, prediction, classification, saving_path, classes):
     path_image = path_image.rstrip()
-    filename_image = path_image.split('/')[-2:-1][0]
+    filename_image = path_image.split("/")[-2:-1][0]
     if "tile" in (saving_path + "/" + filename_image):
         if not os.path.exists(saving_path):
             os.mkdir(saving_path)
@@ -37,8 +37,8 @@ def save_masks_contrast(path_image, prediction, classification, saving_path, cla
             current_class = current_class.astype(np.uint8)
             current_class = np.flip(current_class, 0)
             current_class = Image.fromarray(current_class)
-            current_class.save(saving_filename + ".png", compress_level = 4)
-        classification = classification *63 + 3
+            current_class.save(saving_filename + ".png", compress_level=4)
+        classification = classification * 63 + 3
         classification[classification > 255] = 20
         classification = classification.astype(np.uint8)
         im = Image.fromarray(classification)
