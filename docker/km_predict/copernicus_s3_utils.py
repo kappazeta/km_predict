@@ -169,7 +169,7 @@ def download_file_with_custom_backoff(s3_client, bucket_name, object_key, file_p
         logging.error(f"Failed to download {object_key} after {max_retries} retries")
 
 
-def get_s3_location(product_id: str) -> str:
+def get_s3_location(product_id: str) -> Union[str, None]:
     """Queries Copernicus using product_id to get the S3 location of the product.
     Product_id should not include the file extension .SAFE at the end."""
     print("enetered get_s3_location")

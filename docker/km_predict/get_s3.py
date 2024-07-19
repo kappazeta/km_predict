@@ -7,6 +7,8 @@ from sentinelhub import SHConfig
 from sentinelhub.aws import AwsProductRequest
 from sentinelhub.exceptions import DownloadFailedException
 from copernicus_s3_utils import download_product_by_id
+from os import environ
+import sys
 
 sh_config = None
 path_aws_credentials = Path("~/.aws/credentials").expanduser()
@@ -36,4 +38,10 @@ try:
 except DownloadFailedException as e:
     if "404 Client Error: Not Found for url" in str(e):
         print("entered exception")
-        downloaded_files = download_product_by_id(args.product, args.dest)
+        REQUIRED_ENV_VARS = {"COPERNICUS_ACCESS_KEY_ID", "COPERNICUS_SECRET_ACCESS_KEY", "COPERNICUS_OAUTH_ACCESS_KEY_ID", "COPERNICUS_OAUTH_SECRET_ACCESS_KEY"}
+        missing_variables  = REQUIRED_ENV_VARS.difference(environ)
+        if len(missing_variables) > 0:
+            raise EnvironmentError(f'Failed because {missing_variables} are not set')
+            sys.exit(1)
+        else:
+            downloaded_files = download_product_by_id(args.product, args.dest)

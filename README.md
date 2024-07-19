@@ -78,14 +78,19 @@ KappaMask can be run as a Docker container as follows:
 
         docker pull kappazeta/kappamask:v2.3
 
-2. Run KappaMask for a specific Sentinel-2 product on AWS (please make sure to replace `YOUR-AWS-REGION`, `YOUR-AWS-ACCESS-KEY`, `YOUR-AWS-SECRET-KEY`, `YOUR-S3-BUCKET` with your AWS configuration, and `YOUR-S2-PRODUCT-NAME` with the name of the product to process)
+2. Run KappaMask for a specific Sentinel-2 product on AWS (please make sure to replace 
+`YOUR-AWS-REGION`, `YOUR-AWS-ACCESS-KEY`, `YOUR-AWS-SECRET-KEY`, `YOUR-S3-BUCKET` with your AWS configuration ,
+`YOUR-COPERNICUS_ACCESS_KEY_ID` & `YOUR-COPERNICUS_SECRET_ACCESS_KEY` with your Copernicus S3 credentials, 
+`YOUR-COPERNICUS_OAUTH_ACCESS_KEY_ID` & `YOUR-COPERNICUS_OAUTH_SECRET_ACCESS_KEY`with your Copernicus OAuth credentials
+ and `YOUR-S2-PRODUCT-NAME` with the name of the product to process)
 
-        docker run -e AWS_REGION=YOUR-AWS-REGION -e AWS_ACCESS_KEY=YOUR-AWS-ACCESS-KEY -e AWS_SECRET_KEY=YOUR-AWS-SECRET-KEY kappazeta/kappamask:v2.3 YOUR-S2-PRODUCT-NAME s3://YOUR-S3-BUCKET/
+        docker run -e AWS_REGION=YOUR-AWS-REGION -e AWS_ACCESS_KEY=YOUR-AWS-ACCESS-KEY -e AWS_SECRET_KEY=YOUR-AWS-SECRET-KEY -e COPERNICUS_ACCESS_KEY_ID=YOUR-COPERNICUS_ACCESS_KEY_ID -e COPERNICUS_SECRET_ACCESS_KEY=YOUR-COPERNICUS_SECRET_ACCESS_KEY -e COPERNICUS_OAUTH_ACCESS_KEY_ID=YOUR-COPERNICUS_OAUTH_ACCESS_KEY_ID -e COPERNICUS_OAUTH_SECRET_ACCESS_KEY=YOUR-COPERNICUS_OAUTH_SECRET_ACCESS_KEY kappazeta/kappamask:v2.3 YOUR-S2-PRODUCT-NAME s3://YOUR-S3-BUCKET/
+
 
 For example:
 
     docker pull kappazeta/kappamask:v2.0
-    docker run -e AWS_REGION=eu-central-1 -e AWS_ACCESS_KEY=A******************F -e AWS_SECRET_KEY=3**************************************I kappazeta/kappamask:v2.3 S2A_MSIL2A_20200509T094041_N0214_R036_T35VME_20200509T111504 s3://my-kappamask-experiments/output/
+    docker run -e AWS_REGION=eu-central-1 -e AWS_ACCESS_KEY=A******************F -e AWS_SECRET_KEY=3**************************************I -e COPERNICUS_ACCESS_KEY_ID=R**********************4 -e COPERNICUS_SECRET_ACCESS_KEY=K*************************************Y -e COPERNICUS_OAUTH_ACCESS_KEY_ID=sh-**************************b -e COPERNICUS_OAUTH_SECRET_ACCESS_KEY=e**************************y kappazeta/kappamask:v2.3 S2A_MSIL2A_20200509T094041_N0214_R036_T35VME_20200509T111504 s3://my-kappamask-experiments/output/
 
 ### Running in Docker locally
 KappaMask Docker image can be run locally with the `km_local` entrypoint.

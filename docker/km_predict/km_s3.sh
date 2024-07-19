@@ -59,6 +59,8 @@ function config_aws() {
 function process() {
     echo "Downloading ${input_product}"
     python3 /home/get_s3.py ${input_product} ${wd}/
+    if [ $? -eq 0 ]
+    then 
     echo "Splitting ${input_product}"
     cm_vsm -d "${wd}/${input_product}.SAFE" -j -1 -b "${bands}" -S 512 -f 0 -m sinc -o 0.0625
     echo "Running km_predict"
@@ -72,7 +74,11 @@ function process() {
     echo "Uploading results to S3"
     rm ${wd}/prediction/${input_product}/${input_product_short}.tif
     mv ${wd}/prediction/${input_product}/${input_product_short}.compressed.tif ${wd}/prediction/${input_product}/${input_product_short}.tif
-    aws s3 cp --no-progress --recursive ${wd}/prediction/${input_product}/ ${dir_path_out}${input_product}/   
+    aws s3 cp --no-progress --recursive ${wd}/prediction/${input_product}/ ${dir_path_out}${input_product}/
+    else
+    echo "python checks failed.Exiting."
+    fi
+       
 }
 
 
