@@ -12,7 +12,7 @@ fi
 
 wd=/data
 input=$(basename ${1%.zip})
-output=$(echo "$input" | sed 's@S2[AB]\+_MSI\(L[12AC]\+\)_\([0-9T]\+\)_N[0-9]\+_R[0-9]\+_\(T[0-9A-Z]\+\)_[0-9T]\+@\1_\3_\2_KZ_10m@')
+output=$(echo "$input" | sed 's@S2[ABC]\+_MSI\(L[12AC]\+\)_\([0-9T]\+\)_N[0-9]\+_R[0-9]\+_\(T[0-9A-Z]\+\)_[0-9T]\+@\1_\3_\2_KZ_10m@')
 config=km_predict-config.json
 
 # L1C or L2A product?
