@@ -62,7 +62,7 @@ RUN wget "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -O /home/aws
 RUN python3 -m pip install --upgrade pip
 # NOTE:: Starting from pillow==10.2.0, TiffImagePlugin throws
 #   NotImplementedError: multistrip support not yet implemented
-RUN pip3 install --no-cache-dir scikit-image==0.22.0 netcdf4==1.6.5 rasterio==1.3.9 \
+RUN pip3 install --no-cache-dir tensorflow==2.15.0 scikit-image==0.22.0 netcdf4==1.6.5 rasterio==1.3.9 \
     pytest==7.4.3 scikit-learn==1.3.2 pillow==10.1.0 boto3 sentinelhub[AWS]
 
 # Get km-predict
