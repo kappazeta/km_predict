@@ -66,7 +66,7 @@ RUN pip3 install --no-cache-dir tensorflow==2.15.0 scikit-image==0.22.0 netcdf4=
     pytest==7.4.3 scikit-learn==1.3.2 pillow==10.1.0 boto3 sentinelhub[AWS]
 
 # Get km-predict
-RUN git clone --recurse-submodules https://github.com/kappazeta/km_predict.git && cd km_predict && git checkout v2.3
+RUN git clone --recurse-submodules https://github.com/kappazeta/km_predict.git && cd km_predict && git checkout v2.4 
 RUN mkdir -p /home/km_predict/weights && \
     wget -q http://kappamask.s3-website.eu-central-1.amazonaws.com/model_weights/2022-09-13/l1c_deeplabv3plus.hdf5 -O /home/km_predict/weights/l1c_deeplabv3plus.hdf5 && \
     wget -q http://kappamask.s3-website.eu-central-1.amazonaws.com/model_weights/2022-09-13/l2a_deeplabv3plus.hdf5 -O /home/km_predict/weights/l2a_deeplabv3plus.hdf5

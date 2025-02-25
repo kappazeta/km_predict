@@ -16,9 +16,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-__version__ = '2.3.0'
+__version__ = '2.4.0'
 min_cm_vsm_version = '0.2.6'
 
+# 2.4.0 - Adding support for S2C.
 # 2.3.0 - Support band offsets in S2 product metadata. km_s3.sh moves results to data/.
 # 2.2.0 - Bump km_predict version to make it compatible with Docker image version numbers.
 # 1.1.0 - Docker image no longer relies on Conda.
